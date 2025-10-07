@@ -24,17 +24,32 @@ Una aplicación Next.js 14+ completa con autenticación JWT mediante cookies HTT
 ## 📦 Instalación
 
 ```bash
-# Instalar dependencias
+# 1. Instalar dependencias
 npm install
 
-# Ejecutar en modo desarrollo
+# 2. Configurar backend (opcional)
+npm run setup:backend
+# O usar configuraciones predefinidas:
+npm run config:local     # Para desarrollo local (/api)
+npm run config:external  # Para backend externo (puerto 3001)
+
+# 3. Ejecutar en modo desarrollo
 npm run dev
 
-# Compilar para producción
+# 4. Compilar para producción
 npm run build
 
-# Ejecutar en producción
+# 5. Ejecutar en producción
 npm start
+```
+
+### Comandos de Configuración
+
+```bash
+npm run config:show      # Mostrar configuración actual
+npm run config:local     # Configurar para desarrollo local (/api)
+npm run config:external  # Configurar para backend externo (puerto 3001)
+npm run setup:backend    # Asistente de configuración interactivo
 ```
 
 ## 🏗️ Estructura del Proyecto
@@ -140,15 +155,40 @@ npm run type-check  # Verificar tipos de TypeScript
 
 ## 🌐 Variables de Entorno
 
-Crear un archivo `.env.local` para configuración personalizada:
+### Configuración Inicial
 
-```env
-# URL base de la API (opcional, por defecto usa rutas internas)
-NEXT_PUBLIC_API_URL=http://localhost:3001
-
-# Configuración de cookies (producción)
-NODE_ENV=production
+1. **Copiar el archivo de ejemplo:**
+```bash
+cp .env.example .env.local
 ```
+
+2. **Configurar variables según tu entorno:**
+
+#### Desarrollo Local (Frontend y Backend separados)
+```env
+# Para un backend que corre en puerto diferente
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+#### Desarrollo Local (Todo en uno)
+```env
+# Para usar las rutas internas de Next.js (por defecto)
+NEXT_PUBLIC_API_URL=/api
+```
+
+#### Producción
+```env
+# Para un backend en servidor remoto
+NEXT_PUBLIC_API_URL=https://api.tuempresa.com
+```
+
+### Variables Disponibles
+
+| Variable | Descripción | Valor por defecto |
+|----------|-------------|-------------------|
+| `NEXT_PUBLIC_API_URL` | URL base del backend | `/api` |
+
+> **Nota:** Las variables que empiezan con `NEXT_PUBLIC_` son expuestas al cliente.
 
 ## 🔧 Personalización
 
@@ -171,11 +211,24 @@ theme: {
 
 ### API Backend
 
-Para conectar con un backend real, actualizar las rutas en `lib/api.ts`:
+Para conectar con un backend real, configurar la variable de entorno:
 
-```typescript
-const API_BASE_URL = 'https://tu-api.com'
+**Opción 1: Archivo .env.local**
+```env
+NEXT_PUBLIC_API_URL=https://tu-api.com
 ```
+
+**Opción 2: Variables del sistema (producción)**
+```bash
+export NEXT_PUBLIC_API_URL=https://api.tuempresa.com
+```
+
+**Estructura esperada del backend:**
+- `POST /auth/login` - Autenticación
+- `POST /auth/logout` - Cerrar sesión  
+- `GET /auth/me` - Usuario actual
+- `POST /auth/forgot-password` - Solicitar reset
+- `POST /auth/reset-password` - Confirmar reset
 
 ### Rutas Protegidas
 

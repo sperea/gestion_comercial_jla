@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup:backend": "./scripts/setup-backend.sh",
+    "config:local": "echo 'NEXT_PUBLIC_API_URL=/api' > .env.local && echo '✅ Configurado para desarrollo local'",
+    "config:external": "echo 'NEXT_PUBLIC_API_URL=http://localhost:3001/api' > .env.local && echo '✅ Configurado para backend externo (puerto 3001)'",
+    "config:show": "echo '📋 Configuración actual:' && cat .env.local 2>/dev/null || echo '❌ No existe .env.local'"
   },
   "dependencies": {
     "js-cookie": "^3.0.5",

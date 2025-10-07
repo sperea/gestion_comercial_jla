@@ -1,5 +1,23 @@
+import config from './config'
+
 // Configuración de la API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+const API_BASE_URL = config.apiUrl
+
+// Función para obtener la URL completa de la API
+const getApiUrl = (endpoint: string): string => {
+  // Si el endpoint ya es una URL completa, usarla tal como está
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    return endpoint
+  }
+  
+  // Si API_BASE_URL es una URL completa, concatenar el endpoint
+  if (API_BASE_URL.startsWith('http://') || API_BASE_URL.startsWith('https://')) {
+    return `${API_BASE_URL.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
+  }
+  
+  // Si API_BASE_URL es una ruta relativa (como /api), concatenar normalmente
+  return `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
+}
 
 export interface LoginCredentials {
   email: string
@@ -24,7 +42,7 @@ const fetchWithCredentials = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> => {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`
+  const url = getApiUrl(endpoint)
   
   return fetch(url, {
     ...options,

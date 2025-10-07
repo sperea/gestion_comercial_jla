@@ -26,7 +26,7 @@ yarn-error.log*
 
 # Local env files
 .env*.local
-.env
+.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -121,8 +121,8 @@ web_modules/
 .parcel-cache
 
 # Next.js build output
-.next
-out
+.next/
+out/
 
 # Nuxt.js build / generate output
 .nuxt
