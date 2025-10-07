@@ -1,0 +1,150 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/Card";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login, user } = useAuth();
+  const router = useRouter();
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const success = await login({ email, password });
+      if (success) {
+        router.push("/dashboard");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (user) {
+    return null; // Evitar parpadeo mientras redirige
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-lg w-full space-y-8">
+        {/* Header with Logo */}
+        <div className="text-center">
+          {/* Logo Container */}
+          {/* Logo Container */}
+          <div className="mb-8 p-4 bg-white rounded-lg shadow-sm border border-gray-100 flex justify-center">
+            <Image
+              src="/img/logo.webp"
+              alt="JLA Logo"
+              width={140 * 2}
+              height={90 * 2}
+              className="object-contain"
+            />
+          </div>
+
+          <h2 className="mt-2 text-3xl font-bold text-gray-900">
+            Iniciar Sesión
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Accede a tu panel de colaboradores
+          </p>
+        </div>
+        {/* Login Icon */}
+        <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-primary mb-4">
+          <svg
+            className="h-6 w-6 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+        </div>
+
+        {/* Login Form */}
+        <Card>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <Input
+                label="Correo Electrónico"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="tu@empresa.com"
+                autoComplete="email"
+              />
+            </div>
+
+            <div>
+              <Input
+                label="Contraseña"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="Tu contraseña"
+                autoComplete="current-password"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <Link
+                  href="/forgot-password"
+                  className="font-medium text-primary hover:text-primary-600 transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <Button
+                type="submit"
+                loading={loading}
+                className="w-full"
+                disabled={!email || !password}
+              >
+                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              </Button>
+            </div>
+          </form>
+
+          {/* Demo credentials */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
+              Credenciales de demo:
+            </h4>
+            <p className="text-xs text-gray-600">
+              <strong>Email:</strong> admin@example.com
+              <br />
+              <strong>Contraseña:</strong> password123
+            </p>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
