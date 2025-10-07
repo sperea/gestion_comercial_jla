@@ -12,6 +12,7 @@ export interface Toast {
 interface ToastContextType {
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
+  clearLoadingToasts: () => void
   toasts: Toast[]
 }
 
@@ -32,6 +33,11 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const id = Math.random().toString(36).substr(2, 9)
     const newToast = { ...toast, id }
     
+    // Si es un toast de success o error, eliminar todos los toasts de loading primero
+    if (toast.type === 'success' || toast.type === 'error') {
+      setToasts(prev => prev.filter(t => t.type !== 'loading'))
+    }
+    
     setToasts(prev => [...prev, newToast])
     
     if (toast.type !== 'loading') {
@@ -45,8 +51,12 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
 
+  const clearLoadingToasts = () => {
+    setToasts(prev => prev.filter(toast => toast.type !== 'loading'))
+  }
+
   return (
-    <ToastContext.Provider value={{ addToast, removeToast, toasts }}>
+    <ToastContext.Provider value={{ addToast, removeToast, clearLoadingToasts, toasts }}>
       {children}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </ToastContext.Provider>

@@ -3,16 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 // Proxy para el backend Django - redirige la petición al backend real
 export async function POST(req: NextRequest) {
   try {
-    console.log('🔄 LOGIN PROXY: Recibiendo petición de login')
-    
     const { email, password } = await req.json()
-    console.log('👤 LOGIN PROXY: Email:', email)
 
     // Hacer la petición al backend Django real
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
     const loginUrl = `${backendUrl}/api/auth/login/`
-    
-    console.log('🌐 LOGIN PROXY: URL del backend:', loginUrl)
     
     const response = await fetch(loginUrl, {
       method: 'POST',
@@ -22,8 +17,6 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({ email, password })
     })
-    
-    console.log('📨 LOGIN PROXY: Status del backend:', response.status)
 
     if (!response.ok) {
       const errorData = await response.json()

@@ -30,7 +30,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const { addToast } = useToast()
+  const { addToast, clearLoadingToasts } = useToast()
 
   // Verificar si hay una sesión activa al cargar
   useEffect(() => {
@@ -54,6 +54,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     try {
+      // Limpiar cualquier toast de loading anterior
+      clearLoadingToasts()
       addToast({ type: 'loading', message: 'Iniciando sesión...' })
       
       const response = await authAPI.login(credentials)
@@ -62,9 +64,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // La respuesta ahora incluye { user, tokens }
         const { user } = response.data
         setUser(user)
+        // El toast de success automáticamente limpiará el de loading
         addToast({ type: 'success', message: 'Sesión iniciada exitosamente' })
         return true
       } else {
+        // El toast de error automáticamente limpiará el de loading
         addToast({
           type: 'error',
           message: response.error || 'Credenciales inválidas'
@@ -72,6 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false
       }
     } catch (error) {
+      // El toast de error automáticamente limpiará el de loading
       addToast({
         type: 'error',
         message: 'Error al iniciar sesión. Inténtalo de nuevo.'

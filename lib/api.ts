@@ -54,8 +54,6 @@ const fetchWithCredentials = async (
 ): Promise<Response> => {
   const url = getApiUrl(endpoint)
   
-  console.log('🌐 FETCH: URL completa:', url)
-  
   // Si estamos en el servidor (server-side), no tenemos acceso a cookies del navegador
   const isServer = typeof window === 'undefined'
   
@@ -69,14 +67,8 @@ const fetchWithCredentials = async (
     const accessToken = getCookieValue('access-token')
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`
-      console.log('🔑 FETCH: Access token agregado')
-    } else {
-      console.log('🔑 FETCH: No access token encontrado')
     }
   }
-  
-  console.log('📤 FETCH: Headers:', headers)
-  console.log('📤 FETCH: Options:', options)
   
   return fetch(url, {
     ...options,
@@ -102,25 +94,17 @@ export const authAPI = {
   // Login con email y contraseña
   async login(credentials: LoginCredentials): Promise<ApiResponse<LoginResponse>> {
     try {
-      console.log('🔄 API CLIENT: Iniciando login con:', credentials.email)
-      
       const response = await fetchWithCredentials('/api/auth/login/', {
         method: 'POST',
         body: JSON.stringify(credentials),
       })
 
-      console.log('📨 API CLIENT: Status response:', response.status)
-
       if (!response.ok) {
-        console.log('❌ API CLIENT: Response no OK, leyendo error...')
         const errorData = await response.json()
-        console.log('❌ API CLIENT: Error data:', errorData)
         throw new Error(errorData.message || errorData.detail || 'Error en el login')
       }
 
-      console.log('✅ API CLIENT: Response OK, leyendo datos...')
       const data = await response.json()
-      console.log('📥 API CLIENT: Data recibida:', data)
       
       // Adaptar la respuesta de Django a nuestra estructura esperada
       const adaptedResponse: ApiResponse<LoginResponse> = {
@@ -135,7 +119,6 @@ export const authAPI = {
         message: 'Login exitoso'
       }
 
-      console.log('✅ API CLIENT: Respuesta adaptada:', adaptedResponse)
       return adaptedResponse
     } catch (error) {
       return {
