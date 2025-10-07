@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
   try {
-    // Verificar access token en las cookies
-    const accessToken = req.cookies.get('access-token')
+    // Obtener access token de las cookies
+    const accessToken = req.cookies.get('access-token')?.value
 
     if (!accessToken) {
       return NextResponse.json({
@@ -12,35 +12,37 @@ export async function GET(req: NextRequest) {
       }, { status: 401 })
     }
 
-    // Simulación de validación del access token
-    // En producción, aquí se verificaría y decodificaría el JWT
-    const validTokens = [
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.simulated-access-token',
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.new-simulated-access-token'
-    ]
+    // Hacer petición al backend Django con el token
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const meUrl = `${backendUrl}/api/auth/me/`
+    
+    const response = await fetch(meUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      }
+    })
 
-    if (!validTokens.includes(accessToken.value)) {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
       return NextResponse.json({
         success: false,
-        error: 'Access token inválido o expirado'
-      }, { status: 401 })
+        error: errorData.message || errorData.detail || 'Error al verificar usuario'
+      }, { status: response.status })
     }
 
-    // Simulación de usuario autenticado
-    const user = {
-      id: '1',
-      email: 'admin@example.com',
-      name: 'Administrador'
-    }
-
+    const userData = await response.json()
+    
     return NextResponse.json({
       success: true,
-      data: user
+      data: userData
     })
   } catch (error) {
     return NextResponse.json({
       success: false,
-      error: 'Error interno del servidor'
+      error: 'Error conectando con backend'
     }, { status: 500 })
   }
 }

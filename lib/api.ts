@@ -54,14 +54,39 @@ const fetchWithCredentials = async (
 ): Promise<Response> => {
   const url = getApiUrl(endpoint)
   
+  // Si estamos en el servidor (server-side), no tenemos acceso a cookies del navegador
+  const isServer = typeof window === 'undefined'
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.headers as Record<string, string>,
+  }
+
+  // En el cliente, intentar obtener el access token de las cookies
+  if (!isServer && typeof document !== 'undefined') {
+    const accessToken = getCookieValue('access-token')
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`
+    }
+  }
+  
   return fetch(url, {
     ...options,
     credentials: 'include', // Importante: incluir cookies HTTP-Only
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   })
+}
+
+// Helper para obtener valor de cookie en el cliente
+const getCookieValue = (name: string): string | null => {
+  if (typeof document === 'undefined') return null
+  
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null
+  }
+  return null
 }
 
 // Auth API functions
@@ -74,13 +99,27 @@ export const authAPI = {
         body: JSON.stringify(credentials),
       })
 
-      const data = await response.json()
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Error en el login')
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.detail || 'Error en el login')
       }
 
-      return data
+      const data = await response.json()
+      
+      // Adaptar la respuesta de Django a nuestra estructura esperada
+      const adaptedResponse: ApiResponse<LoginResponse> = {
+        success: true,
+        data: {
+          user: data.user,
+          tokens: {
+            access: data.access,
+            refresh: data.refresh
+          }
+        },
+        message: 'Login exitoso'
+      }
+
+      return adaptedResponse
     } catch (error) {
       return {
         success: false,
@@ -146,19 +185,28 @@ export const authAPI = {
           const retryResponse = await fetchWithCredentials('/api/auth/me/')
           if (retryResponse.ok) {
             const retryData = await retryResponse.json()
-            return retryData
+            return {
+              success: true,
+              data: retryData,
+              message: 'Usuario verificado'
+            }
           }
         }
         return { success: false, error: 'No autenticado' }
       }
 
-      const data = await response.json()
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Error al verificar usuario')
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.detail || 'Error al verificar usuario')
       }
 
-      return data
+      const data = await response.json()
+      
+      return {
+        success: true,
+        data: data,
+        message: 'Usuario verificado'
+      }
     } catch (error) {
       return {
         success: false,

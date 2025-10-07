@@ -1,64 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Simulación de backend - En producción, estas llamadas irían al servidor real
+// Proxy para el backend Django - redirige la petición al backend real
 export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json()
 
-    // Simulación de validación de credenciales
-    // En producción, esto se haría contra una base de datos real
-    if (email === 'admin@example.com' && password === 'password123') {
-      const user = {
-        id: '1',
-        email: 'admin@example.com',
-        name: 'Administrador'
-      }
+    // Hacer la petición al backend Django real
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const loginUrl = `${backendUrl}/api/auth/login/`
+    
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ email, password })
+    })
 
-      // Simulación de tokens JWT - En producción, estos serían tokens reales
-      const tokens = {
-        access: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.simulated-access-token',
-        refresh: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.simulated-refresh-token'
-      }
-
-      const response = NextResponse.json({
-        success: true,
-        data: {
-          user,
-          tokens
-        },
-        message: 'Login exitoso'
-      })
-
-      // Establecer cookies HTTP-Only para ambos tokens
-      // Access token - duración corta (15 minutos)
-      response.cookies.set('access-token', tokens.access, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 15 * 60, // 15 minutos
-        path: '/'
-      })
-
-      // Refresh token - duración larga (7 días)
-      response.cookies.set('refresh-token', tokens.refresh, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 días
-        path: '/'
-      })
-
-      return response
-    } else {
+    if (!response.ok) {
+      const errorData = await response.json()
       return NextResponse.json({
         success: false,
-        error: 'Credenciales inválidas'
-      }, { status: 401 })
+        error: errorData.message || errorData.detail || 'Error en el login'
+      }, { status: response.status })
     }
+
+    const data = await response.json()
+    
+    // Crear la respuesta con la estructura esperada por el frontend
+    const responseData = {
+      success: true,
+      data: {
+        user: data.user,
+        tokens: {
+          access: data.access,
+          refresh: data.refresh
+        }
+      },
+      message: 'Login exitoso'
+    }
+
+    const nextResponse = NextResponse.json(responseData)
+
+    // Establecer cookies HTTP-Only para ambos tokens
+    // Access token - duración corta (30 minutos para JWT)
+    nextResponse.cookies.set('access-token', data.access, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 60, // 30 minutos
+      path: '/'
+    })
+
+    // Refresh token - duración larga (7 días)
+    nextResponse.cookies.set('refresh-token', data.refresh, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 días
+      path: '/'
+    })
+
+    return nextResponse
   } catch (error) {
     return NextResponse.json({
       success: false,
-      error: 'Error interno del servidor'
+      error: 'Error conectando con backend'
     }, { status: 500 })
   }
 }
