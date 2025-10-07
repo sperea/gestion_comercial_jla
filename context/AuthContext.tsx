@@ -59,7 +59,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authAPI.login(credentials)
       
       if (response.success && response.data) {
-        setUser(response.data)
+        // La respuesta ahora incluye { user, tokens }
+        const { user } = response.data
+        setUser(user)
         addToast({ type: 'success', message: 'Sesión iniciada exitosamente' })
         return true
       } else {

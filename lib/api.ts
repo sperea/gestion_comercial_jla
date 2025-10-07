@@ -30,6 +30,16 @@ export interface User {
   name?: string
 }
 
+export interface JWTTokens {
+  access: string
+  refresh: string
+}
+
+export interface LoginResponse {
+  user: User
+  tokens?: JWTTokens
+}
+
 export interface ApiResponse<T = any> {
   success: boolean
   data?: T
@@ -57,9 +67,9 @@ const fetchWithCredentials = async (
 // Auth API functions
 export const authAPI = {
   // Login con email y contraseña
-  async login(credentials: LoginCredentials): Promise<ApiResponse<User>> {
+  async login(credentials: LoginCredentials): Promise<ApiResponse<LoginResponse>> {
     try {
-      const response = await fetchWithCredentials('/auth/login', {
+      const response = await fetchWithCredentials('/api/auth/login/', {
         method: 'POST',
         body: JSON.stringify(credentials),
       })
@@ -82,7 +92,7 @@ export const authAPI = {
   // Logout
   async logout(): Promise<ApiResponse> {
     try {
-      const response = await fetchWithCredentials('/auth/logout', {
+      const response = await fetchWithCredentials('/api/auth/logout/', {
         method: 'POST',
       })
 
@@ -101,12 +111,44 @@ export const authAPI = {
     }
   },
 
+  // Renovar access token usando refresh token
+  async refresh(): Promise<ApiResponse<{ access: string }>> {
+    try {
+      const response = await fetchWithCredentials('/api/auth/refresh/', {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al renovar token')
+      }
+
+      return data
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
   // Verificar usuario actual (para mantener sesión)
   async me(): Promise<ApiResponse<User>> {
     try {
-      const response = await fetchWithCredentials('/auth/me')
+      const response = await fetchWithCredentials('/api/auth/me/')
 
       if (response.status === 401) {
+        // Intentar renovar el token automáticamente
+        const refreshResult = await this.refresh()
+        if (refreshResult.success) {
+          // Reintentar la petición original después del refresh
+          const retryResponse = await fetchWithCredentials('/api/auth/me/')
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json()
+            return retryData
+          }
+        }
         return { success: false, error: 'No autenticado' }
       }
 
@@ -128,7 +170,7 @@ export const authAPI = {
   // Solicitar recuperación de contraseña
   async forgotPassword(email: string): Promise<ApiResponse> {
     try {
-      const response = await fetchWithCredentials('/auth/forgot-password', {
+      const response = await fetchWithCredentials('/api/auth/forgot-password/', {
         method: 'POST',
         body: JSON.stringify({ email }),
       })
@@ -151,7 +193,7 @@ export const authAPI = {
   // Restablecer contraseña con token
   async resetPassword(token: string, password: string): Promise<ApiResponse> {
     try {
-      const response = await fetchWithCredentials('/auth/reset-password', {
+      const response = await fetchWithCredentials('/api/auth/reset-password/', {
         method: 'POST',
         body: JSON.stringify({ token, password }),
       })

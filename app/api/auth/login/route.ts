@@ -14,16 +14,33 @@ export async function POST(req: NextRequest) {
         name: 'Administrador'
       }
 
-      // En producción, aquí se generaría un JWT real
+      // Simulación de tokens JWT - En producción, estos serían tokens reales
+      const tokens = {
+        access: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.simulated-access-token',
+        refresh: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.simulated-refresh-token'
+      }
+
       const response = NextResponse.json({
         success: true,
-        data: user,
+        data: {
+          user,
+          tokens
+        },
         message: 'Login exitoso'
       })
 
-      // Establecer cookie HTTP-Only con el JWT
-      // En producción, usar un JWT real y configurar secure: true en HTTPS
-      response.cookies.set('auth-token', 'simulated-jwt-token', {
+      // Establecer cookies HTTP-Only para ambos tokens
+      // Access token - duración corta (15 minutos)
+      response.cookies.set('access-token', tokens.access, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 15 * 60, // 15 minutos
+        path: '/'
+      })
+
+      // Refresh token - duración larga (7 días)
+      response.cookies.set('refresh-token', tokens.refresh, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

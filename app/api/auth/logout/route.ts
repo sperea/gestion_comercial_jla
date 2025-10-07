@@ -7,8 +7,9 @@ export async function POST(req: NextRequest) {
       message: 'Logout exitoso'
     })
 
-    // Eliminar la cookie de autenticación
-    response.cookies.delete('auth-token')
+    // Eliminar ambas cookies de autenticación
+    response.cookies.delete('access-token')
+    response.cookies.delete('refresh-token')
 
     return response
   } catch (error) {
