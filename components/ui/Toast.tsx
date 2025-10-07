@@ -43,7 +43,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     if (toast.type !== 'loading') {
       setTimeout(() => {
         removeToast(id)
-      }, toast.duration || 5000)
+      }, toast.duration || 4000) // Reducido a 4 segundos para mejor UX
     }
   }
 
@@ -70,7 +70,7 @@ interface ToastContainerProps {
 
 const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => {
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-50 space-y-3 max-w-md">
       {toasts.map(toast => (
         <ToastComponent key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
@@ -87,13 +87,13 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onRemove }) => {
   const getToastStyles = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 border-green-200 text-green-800'
+        return 'bg-white border-l-4 border-green-500 shadow-xl'
       case 'error':
-        return 'bg-red-50 border-red-200 text-red-800'
+        return 'bg-white border-l-4 border-red-500 shadow-xl'
       case 'loading':
-        return 'bg-gray-50 border-gray-200 text-gray-800'
+        return 'bg-white border-l-4 border-blue-500 shadow-xl'
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800'
+        return 'bg-white border-l-4 border-gray-300 shadow-xl'
     }
   }
 
@@ -101,48 +101,71 @@ const ToastComponent: React.FC<ToastComponentProps> = ({ toast, onRemove }) => {
     switch (toast.type) {
       case 'success':
         return (
-          <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
         )
       case 'error':
         return (
-          <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-          </svg>
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
         )
       case 'loading':
         return (
-          <svg className="animate-spin w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <svg className="animate-spin w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
         )
+    }
+  }
+
+  const getTextColor = () => {
+    switch (toast.type) {
+      case 'success':
+        return 'text-green-800'
+      case 'error':
+        return 'text-red-800'
+      case 'loading':
+        return 'text-blue-800'
+      default:
+        return 'text-gray-800'
     }
   }
 
   return (
     <div className={`
-      max-w-sm w-full border rounded-lg p-4 shadow-lg transform transition-all duration-300
+      w-full rounded-lg p-4 transform transition-all duration-500 ease-in-out
+      animate-slide-in-right
       ${getToastStyles()}
     `}>
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          {getIcon()}
+      <div className="flex items-start space-x-3">
+        {getIcon()}
+        <div className="flex-1 min-w-0">
+          <p className={`text-base font-semibold leading-6 ${getTextColor()}`}>
+            {toast.message}
+          </p>
         </div>
-        <div className="ml-3 w-0 flex-1">
-          <p className="text-sm font-medium">{toast.message}</p>
-        </div>
-        <div className="ml-4 flex-shrink-0 flex">
-          <button
-            onClick={() => onRemove(toast.id)}
-            className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition ease-in-out duration-150"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
+        {toast.type !== 'loading' && (
+          <div className="flex-shrink-0">
+            <button
+              onClick={() => onRemove(toast.id)}
+              className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200"
+            >
+              <span className="sr-only">Cerrar</span>
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
