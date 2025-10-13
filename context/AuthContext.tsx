@@ -11,6 +11,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   forgotPassword: (email: string) => Promise<boolean>
   resetPassword: (token: string, password: string) => Promise<boolean>
+  refreshUserData: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -156,6 +157,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  const refreshUserData = async (): Promise<void> => {
+    await checkAuthStatus()
+  }
+
   const value = {
     user,
     loading,
@@ -163,6 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     forgotPassword,
     resetPassword,
+    refreshUserData,
   }
 
   return (

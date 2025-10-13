@@ -1,4 +1,5 @@
 import config from './config'
+import type { UserRoles } from './types/roles'
 
 // Configuración de la API
 const API_BASE_URL = config.apiUrl
@@ -76,6 +77,8 @@ const fetchWithCredentials = async (
     headers,
   })
 }
+
+
 
 // Helper para obtener valor de cookie en el cliente
 const getCookieValue = (name: string): string | null => {
@@ -226,10 +229,37 @@ export const authAPI = {
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.message || 'Error al solicitar recuperación')
+        throw new Error(data.error || data.message || 'Error al solicitar recuperación')
       }
 
-      return data
+      return {
+        success: true,
+        message: data.message || 'Email de recuperación enviado'
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Validar token de recuperación
+  async validateResetToken(token: string): Promise<ApiResponse<{ email: string }>> {
+    try {
+      const response = await fetchWithCredentials(`/api/auth/validate-reset-token?token=${encodeURIComponent(token)}`)
+
+      const data = await response.json()
+      
+      if (!response.ok || !data.valid) {
+        throw new Error(data.error || 'Token inválido o expirado')
+      }
+
+      return {
+        success: true,
+        data: { email: data.email },
+        message: 'Token válido'
+      }
     } catch (error) {
       return {
         success: false,
@@ -239,20 +269,52 @@ export const authAPI = {
   },
 
   // Restablecer contraseña con token
-  async resetPassword(token: string, password: string): Promise<ApiResponse> {
+  async resetPassword(token: string, new_password: string, confirm_password: string): Promise<ApiResponse> {
     try {
       const response = await fetchWithCredentials('/api/auth/reset-password/', {
         method: 'POST',
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, new_password, confirm_password }),
       })
 
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.message || 'Error al restablecer contraseña')
+        throw new Error(data.error || data.message || 'Error al restablecer contraseña')
       }
 
-      return data
+      return {
+        success: true,
+        message: data.message || 'Contraseña restablecida exitosamente'
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Obtener roles del usuario actual
+  async getUserRoles(): Promise<ApiResponse<UserRoles>> {
+    try {
+      const response = await fetchWithCredentials('/api/users/me/roles/')
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || errorData.detail || 'Error al obtener roles')
+      }
+
+      const data = await response.json()
+      
+      return {
+        success: true,
+        data: data,
+        message: 'Roles obtenidos exitosamente'
+      }
     } catch (error) {
       return {
         success: false,
