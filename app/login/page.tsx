@@ -18,7 +18,9 @@ export default function LoginPage() {
 
   // Redirigir si ya está autenticado
   useEffect(() => {
+    console.log('🔍 useEffect login - user state:', user);
     if (user) {
+      console.log('👤 Usuario detectado, redirigiendo a dashboard...');
       router.push("/dashboard");
     }
   }, [user, router]);
@@ -28,10 +30,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log('🔐 Iniciando login con:', { email });
       const success = await login({ email, password });
+      console.log('✅ Resultado del login:', { success });
+      
       if (success) {
+        console.log('🚀 Login exitoso, redirigiendo a dashboard...');
         router.push("/dashboard");
+      } else {
+        console.log('❌ Login falló, no hay redirección');
       }
+    } catch (error) {
+      console.error('💥 Error en handleSubmit:', error);
     } finally {
       setLoading(false);
     }

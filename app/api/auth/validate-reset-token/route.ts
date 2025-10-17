@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Llamar al backend Django para validar el token
-    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/validate-reset-token/`
+    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/password-reset/validate/`
     
     console.log(`🔍 Validando token de recuperación`)
 
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       valid: true,
-      email: data.email
+      email: data.user_email || data.email
     })
 
   } catch (error) {

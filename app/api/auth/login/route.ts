@@ -20,13 +20,32 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json()
+      console.error('❌ Error en login desde Django:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      })
+      
+      // Obtener el mensaje de error más específico
+      let errorMessage = 'Error en el login'
+      if (errorData.non_field_errors && errorData.non_field_errors.length > 0) {
+        errorMessage = errorData.non_field_errors[0]
+      } else if (errorData.detail) {
+        errorMessage = errorData.detail
+      } else if (errorData.message) {
+        errorMessage = errorData.message
+      }
+      
       return NextResponse.json({
         success: false,
-        error: errorData.message || errorData.detail || 'Error en el login'
+        error: errorMessage
       }, { status: response.status })
     }
 
     const data = await response.json()
+    
+    console.log('🔍 Respuesta completa de Django:', data)
+    console.log('👤 Usuario en respuesta de Django:', data.user)
     
     // Crear la respuesta con la estructura esperada por el frontend
     const responseData = {

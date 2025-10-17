@@ -38,6 +38,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthStatus()
   }, [])
 
+  // Debug: monitorear cambios en el usuario
+  useEffect(() => {
+    console.log('🔄 AuthContext - user state cambió:', user)
+  }, [user])
+
   const checkAuthStatus = async () => {
     try {
       const response = await authAPI.me()
@@ -61,10 +66,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const response = await authAPI.login(credentials)
       
+      console.log('📡 Respuesta del authAPI.login:', response)
+      console.log('📋 response.data completo:', response.data)
+      console.log('🔍 Claves en response.data:', response.data ? Object.keys(response.data) : 'N/A')
+      
       if (response.success && response.data) {
         // La respuesta ahora incluye { user, tokens }
         const { user } = response.data
+        console.log('👤 Usuario extraído de la respuesta:', user)
+        console.log('🔄 Estableciendo usuario en el estado...')
         setUser(user)
+        console.log('✅ setUser ejecutado')
         // El toast de success automáticamente limpiará el de loading
         addToast({ type: 'success', message: 'Sesión iniciada exitosamente' })
         return true
@@ -133,7 +145,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       addToast({ type: 'loading', message: 'Restableciendo contraseña...' })
       
-      const response = await authAPI.resetPassword(token, password)
+      const response = await authAPI.resetPassword(token, password, password)
       
       if (response.success) {
         addToast({

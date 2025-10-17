@@ -1,7 +1,6 @@
 'use client'
 
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
@@ -15,12 +14,32 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
   const { forgotPassword } = useAuth()
 
+  // Validación de email
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email.trim())
+  }
+
+  const isFormValid = email.trim().length > 0 && isValidEmail(email.trim())
+
+  // Debug effect
+  useEffect(() => {
+    console.log('🔄 State updated:', { email, isFormValid, emailLength: email.length })
+  }, [email, isFormValid])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!isFormValid) {
+      console.log('❌ Formulario no válido:', { email, isValidEmail: isValidEmail(email) })
+      return
+    }
+    
     setLoading(true)
+    console.log('🔐 Enviando solicitud de recuperación para:', email.trim())
 
     try {
-      const success = await forgotPassword(email)
+      const success = await forgotPassword(email.trim())
       if (success) {
         setSent(true)
       }
@@ -96,11 +115,23 @@ export default function ForgotPasswordPage() {
                   label="Correo Electrónico"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    const newEmail = e.target.value
+                    console.log('📧 Email event triggered:', { 
+                      newValue: newEmail, 
+                      currentState: email,
+                      eventTarget: e.target.value 
+                    })
+                    setEmail(newEmail)
+                  }}
+                  onInput={(e) => {
+                    console.log('📧 onInput triggered:', (e.target as HTMLInputElement).value)
+                  }}
                   required
-                  placeholder="tu@empresa.com"
+                  placeholder="sperea@jlaasociados.es"
                   autoComplete="email"
                   helperText="Ingresa el email asociado a tu cuenta"
+                  error={email.length > 0 && !isValidEmail(email) ? 'Formato de email inválido' : undefined}
                 />
               </div>
 
@@ -109,10 +140,17 @@ export default function ForgotPasswordPage() {
                   type="submit"
                   loading={loading}
                   className="w-full"
-                  disabled={!email}
+                  disabled={!isFormValid || loading}
                 >
                   {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
                 </Button>
+
+                {/* Debug info - solo en desarrollo */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+                    Debug: Email=&quot;{email}&quot; | Valid={isFormValid.toString()} | Length={email.length}
+                  </div>
+                )}
 
                 <Link href="/login">
                   <Button variant="secondary" className="w-full">

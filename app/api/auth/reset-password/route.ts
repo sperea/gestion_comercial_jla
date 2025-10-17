@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Llamar al backend Django
-    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password/`
+    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/password-reset/confirm/`
     
     console.log(`🔐 Restableciendo contraseña con token`)
 
@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         token,
-        new_password
+        new_password,
+        confirm_password
       }),
     })
 

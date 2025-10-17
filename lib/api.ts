@@ -11,12 +11,18 @@ const getApiUrl = (endpoint: string): string => {
     return endpoint
   }
   
-  // Si API_BASE_URL es una URL completa, concatenar el endpoint
+  // Si el endpoint comienza con /api/, es un endpoint del frontend Next.js
+  // No agregar el API_BASE_URL, usar la URL relativa
+  if (endpoint.startsWith('/api/')) {
+    return endpoint
+  }
+  
+  // Para otros endpoints, usar el API_BASE_URL del backend
   if (API_BASE_URL.startsWith('http://') || API_BASE_URL.startsWith('https://')) {
     return `${API_BASE_URL.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
   }
   
-  // Si API_BASE_URL es una ruta relativa (como /api), concatenar normalmente
+  // Si API_BASE_URL es una ruta relativa, concatenar normalmente
   return `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
 }
 
@@ -27,8 +33,18 @@ export interface LoginCredentials {
 
 export interface User {
   id: string
+  username: string
   email: string
-  name?: string
+  first_name?: string
+  last_name?: string
+  full_name?: string
+  name?: string  // Para retrocompatibilidad
+  role?: string
+  roles?: any[]
+  role_names?: string[]
+  is_active: boolean
+  date_joined?: string
+  last_login?: string
 }
 
 export interface JWTTokens {
@@ -97,7 +113,7 @@ export const authAPI = {
   // Login con email y contraseña
   async login(credentials: LoginCredentials): Promise<ApiResponse<LoginResponse>> {
     try {
-      const response = await fetchWithCredentials('/api/auth/login/', {
+      const response = await fetchWithCredentials('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
       })
@@ -109,20 +125,11 @@ export const authAPI = {
 
       const data = await response.json()
       
-      // Adaptar la respuesta de Django a nuestra estructura esperada
-      const adaptedResponse: ApiResponse<LoginResponse> = {
-        success: true,
-        data: {
-          user: data.user,
-          tokens: {
-            access: data.access,
-            refresh: data.refresh
-          }
-        },
-        message: 'Login exitoso'
-      }
-
-      return adaptedResponse
+      console.log('🔍 Respuesta completa del endpoint frontend:', data)
+      
+      // La respuesta del frontend ya tiene la estructura correcta
+      // No necesitamos adaptarla, solo devolverla
+      return data
     } catch (error) {
       return {
         success: false,
@@ -271,7 +278,7 @@ export const authAPI = {
   // Restablecer contraseña con token
   async resetPassword(token: string, new_password: string, confirm_password: string): Promise<ApiResponse> {
     try {
-      const response = await fetchWithCredentials('/api/auth/reset-password/', {
+      const response = await fetchWithCredentials('/api/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({ token, new_password, confirm_password }),
       })

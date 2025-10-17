@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Llamar al backend Django
-    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password/`
+    // Llamar al backend Django real
+    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/password-reset/request/`
     
     console.log(`🔐 Solicitando recuperación de contraseña para: ${email}`)
     console.log(`📡 Django URL: ${djangoUrl}`)
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       }, { status: response.status })
     }
 
-    console.log('✅ Email de recuperación enviado exitosamente')
+    console.log('✅ Email de recuperación enviado desde Django:', data)
 
     // Siempre devolvemos éxito para no revelar si el email existe
     // (mejor práctica de seguridad)
