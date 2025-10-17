@@ -29,6 +29,7 @@ const getApiUrl = (endpoint: string): string => {
 export interface LoginCredentials {
   email: string
   password: string
+  rememberMe?: boolean
 }
 
 export interface User {
@@ -141,7 +142,7 @@ export const authAPI = {
   // Logout
   async logout(): Promise<ApiResponse> {
     try {
-      const response = await fetchWithCredentials('/api/auth/logout/', {
+      const response = await fetchWithCredentials('/api/auth/logout', {
         method: 'POST',
       })
 
@@ -163,7 +164,7 @@ export const authAPI = {
   // Renovar access token usando refresh token
   async refresh(): Promise<ApiResponse<{ access: string }>> {
     try {
-      const response = await fetchWithCredentials('/api/auth/refresh/', {
+      const response = await fetchWithCredentials('/api/auth/refresh', {
         method: 'POST',
       })
 
@@ -185,19 +186,19 @@ export const authAPI = {
   // Verificar usuario actual (para mantener sesión)
   async me(): Promise<ApiResponse<User>> {
     try {
-      const response = await fetchWithCredentials('/api/auth/me/')
+      const response = await fetchWithCredentials('/api/auth/me')
 
       if (response.status === 401) {
         // Intentar renovar el token automáticamente
         const refreshResult = await this.refresh()
         if (refreshResult.success) {
           // Reintentar la petición original después del refresh
-          const retryResponse = await fetchWithCredentials('/api/auth/me/')
+          const retryResponse = await fetchWithCredentials('/api/auth/me')
           if (retryResponse.ok) {
             const retryData = await retryResponse.json()
             return {
               success: true,
-              data: retryData,
+              data: retryData.data || retryData,
               message: 'Usuario verificado'
             }
           }
@@ -214,7 +215,7 @@ export const authAPI = {
       
       return {
         success: true,
-        data: data,
+        data: data.data || data,
         message: 'Usuario verificado'
       }
     } catch (error) {

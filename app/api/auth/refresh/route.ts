@@ -13,37 +13,53 @@ export async function POST(req: NextRequest) {
       }, { status: 401 })
     }
 
-    // Simulación de validación del refresh token
-    // En producción, aquí se verificaría y decodificaría el JWT refresh token
-    if (refreshToken === 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.simulated-refresh-token') {
-      // Generar nuevo access token
-      const newAccessToken = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.new-simulated-access-token'
+    // Hacer petición al backend Django para renovar el token
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const refreshUrl = `${backendUrl}/api/auth/refresh/`
+    
+    console.log('🔄 Renovando token con backend Django...')
+    
+    const response = await fetch(refreshUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh: refreshToken })
+    })
 
-      const response = NextResponse.json({
-        success: true,
-        data: {
-          access: newAccessToken
-        },
-        message: 'Token renovado exitosamente'
-      })
-
-      // Establecer nueva cookie con el access token renovado
-      response.cookies.set('access-token', newAccessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 15 * 60, // 15 minutos
-        path: '/'
-      })
-
-      return response
-    } else {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.log('❌ Error renovando token:', errorData)
       return NextResponse.json({
         success: false,
-        error: 'Refresh token inválido o expirado'
-      }, { status: 401 })
+        error: errorData.detail || 'Refresh token inválido o expirado'
+      }, { status: response.status })
     }
+
+    const data = await response.json()
+    const newAccessToken = data.access
+    console.log('✅ Token renovado exitosamente')
+
+    const nextResponse = NextResponse.json({
+      success: true,
+      data: {
+        access: newAccessToken
+      },
+      message: 'Token renovado exitosamente'
+    })
+
+    // Establecer nueva cookie con el access token renovado
+    nextResponse.cookies.set('access-token', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 60, // 30 minutos
+      path: '/'
+    })
+
+    return nextResponse
   } catch (error) {
+    console.error('💥 Error en /api/auth/refresh:', error)
     return NextResponse.json({
       success: false,
       error: 'Error interno del servidor'

@@ -8,13 +8,21 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/Card";
+import { Checkbox } from "@/components/ui/Checkbox";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
   const router = useRouter();
+
+  // Verificar si ya existe la preferencia de "recordarme" al cargar
+  useEffect(() => {
+    const savedRememberMe = localStorage.getItem('jla_remember_me') === 'true'
+    setRememberMe(savedRememberMe)
+  }, [])
 
   // Redirigir si ya está autenticado
   useEffect(() => {
@@ -30,8 +38,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      console.log('🔐 Iniciando login con:', { email });
-      const success = await login({ email, password });
+      console.log('🔐 Iniciando login con:', { email, rememberMe });
+      const success = await login({ email, password, rememberMe });
       console.log('✅ Resultado del login:', { success });
       
       if (success) {
@@ -120,6 +128,14 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                label="Recordarme"
+                description="Mantener la sesión activa incluso después de cerrar el navegador"
+              />
+              
               <div className="text-sm">
                 <Link
                   href="/forgot-password"

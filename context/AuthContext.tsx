@@ -45,14 +45,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
+      // Verificar si el usuario tiene sesión guardada para "recordarme"
+      const rememberMe = localStorage.getItem('jla_remember_me') === 'true'
+      console.log('🔍 Verificando estado de autenticación... rememberMe:', rememberMe)
+      
       const response = await authAPI.me()
       if (response.success && response.data) {
         setUser(response.data)
+        console.log('✅ Sesión activa encontrada:', response.data.email)
       } else {
         setUser(null)
+        // Si no hay sesión activa y no está marcado "recordarme", limpiar localStorage
+        if (!rememberMe) {
+          localStorage.removeItem('jla_remember_me')
+        }
+        console.log('❌ No hay sesión activa')
       }
     } catch (error) {
       setUser(null)
+      console.log('💥 Error verificando sesión:', error)
     } finally {
       setLoading(false)
     }
@@ -76,6 +87,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('👤 Usuario extraído de la respuesta:', user)
         console.log('🔄 Estableciendo usuario en el estado...')
         setUser(user)
+        
+        // Manejar la opción "Recordarme"
+        if (credentials.rememberMe) {
+          localStorage.setItem('jla_remember_me', 'true')
+          console.log('💾 Sesión marcada para recordar')
+        } else {
+          localStorage.removeItem('jla_remember_me')
+          console.log('🗑️ Sesión NO marcada para recordar')
+        }
+        
         console.log('✅ setUser ejecutado')
         // El toast de success automáticamente limpiará el de loading
         addToast({ type: 'success', message: 'Sesión iniciada exitosamente' })
@@ -102,10 +123,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await authAPI.logout()
       setUser(null)
+      // Limpiar el flag de "recordarme" al cerrar sesión
+      localStorage.removeItem('jla_remember_me')
       addToast({ type: 'success', message: 'Sesión cerrada exitosamente' })
     } catch (error) {
       // Aunque falle el logout en el servidor, limpiamos el estado local
       setUser(null)
+      localStorage.removeItem('jla_remember_me')
       addToast({
         type: 'error',
         message: 'Error al cerrar sesión, pero se limpió localmente'
