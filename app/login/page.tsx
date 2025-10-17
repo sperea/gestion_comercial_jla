@@ -61,17 +61,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-lg w-full space-y-8">
+      <div className="max-w-xl w-full space-y-8">
         {/* Header with Logo */}
         <div className="text-center">
           {/* Logo Container */}
           {/* Logo Container */}
-          <div className="mb-8 p-4 bg-white rounded-lg shadow-sm border border-gray-100 flex justify-center">
+          <div className="mb-8 p-6 bg-white rounded-lg shadow-sm border border-gray-100 flex justify-center">
             <Image
               src="/img/logo.webp"
               alt="JLA Logo"
-              width={140 * 2}
-              height={90 * 2}
+              width={140 * 2.2}
+              height={90 * 2.2}
               className="object-contain"
             />
           </div>
@@ -101,8 +101,8 @@ export default function LoginPage() {
         </div>
 
         {/* Login Form */}
-        <Card>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+        <Card className="p-8">
+          <form className="space-y-8" onSubmit={handleSubmit}>
             <div>
               <Input
                 label="Correo Electrónico"
@@ -112,6 +112,7 @@ export default function LoginPage() {
                 required
                 placeholder="tu@empresa.com"
                 autoComplete="email"
+                className="text-lg p-3"
               />
             </div>
 
@@ -124,10 +125,12 @@ export default function LoginPage() {
                 required
                 placeholder="Tu contraseña"
                 autoComplete="current-password"
+                className="text-lg p-3"
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* Recordarme */}
+            <div className="space-y-4">
               <Checkbox
                 id="rememberMe"
                 checked={rememberMe}
@@ -136,10 +139,10 @@ export default function LoginPage() {
                 description="Mantener la sesión activa incluso después de cerrar el navegador"
               />
               
-              <div className="text-sm">
+              <div className="text-center">
                 <Link
                   href="/forgot-password"
-                  className="font-medium text-primary hover:text-primary-600 transition-colors"
+                  className="text-sm font-medium text-primary hover:text-primary-600 transition-colors underline"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
@@ -150,7 +153,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 loading={loading}
-                className="w-full"
+                className="w-full py-4 text-lg font-semibold"
                 disabled={!email || !password}
               >
                 {loading ? "Iniciando sesión..." : "Iniciar Sesión"}

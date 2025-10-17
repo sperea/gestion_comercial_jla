@@ -33,7 +33,7 @@ export default function Header() {
   }, [])
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200">
+    <header className="bg-white shadow-lg border-b border-gray-200 mb-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo y marca */}
@@ -42,28 +42,28 @@ export default function Header() {
               <Image
                 src="/img/logo.webp"
                 alt="JLA Asociados"
-                width={140}
-                height={40}
+                width={170}
+                height={50}
                 className="object-contain"
               />
             </div>
-            
-            {/* Navegación desktop */}
-            <nav className="hidden md:ml-8 md:flex md:space-x-8">
-              <a href="#" className="text-gray-900 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Dashboard
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Proyectos
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Documentos
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Reportes
-              </a>
-            </nav>
           </div>
+            
+          {/* Navegación desktop centrada */}
+          <nav className="hidden md:flex md:justify-center md:space-x-8 flex-1">
+            <a href="#" className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              Mis Proyectos
+            </a>
+            <a href="#" className="text-gray-500 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              Tarificadores
+            </a>
+            <a href="#" className="text-gray-500 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              Mi Formación
+            </a>
+            <a href="#" className="text-gray-500 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              Soporte
+            </a>
+          </nav>
 
           {/* Acciones del usuario */}
           <div className="flex items-center space-x-4">
@@ -157,16 +157,16 @@ export default function Header() {
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-200 bg-gray-50">
             <a href="#" className="text-gray-900 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
-              Dashboard
+              Mis Proyectos
             </a>
             <a href="#" className="text-gray-500 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-              Proyectos
+              Tarificadores
             </a>
             <a href="#" className="text-gray-500 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-              Documentos
+              Mi Formación
             </a>
             <a href="#" className="text-gray-500 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-              Reportes
+              Soporte
             </a>
           </div>
         </div>
