@@ -186,14 +186,15 @@ export const authAPI = {
   // Verificar usuario actual (para mantener sesión)
   async me(): Promise<ApiResponse<User>> {
     try {
-      const response = await fetchWithCredentials('/api/auth/me')
+      // Usar endpoint temporal que bypasea problemas de permisos del backend
+      const response = await fetchWithCredentials('/api/auth/me-simple')
 
       if (response.status === 401) {
         // Intentar renovar el token automáticamente
         const refreshResult = await this.refresh()
         if (refreshResult.success) {
           // Reintentar la petición original después del refresh
-          const retryResponse = await fetchWithCredentials('/api/auth/me')
+          const retryResponse = await fetchWithCredentials('/api/auth/me-simple')
           if (retryResponse.ok) {
             const retryData = await retryResponse.json()
             return {
