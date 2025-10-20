@@ -40,6 +40,9 @@ export interface User {
   last_name?: string
   full_name?: string
   name?: string  // Para retrocompatibilidad
+  phone?: string
+  avatar?: string
+  profile_image?: string | null  // Nueva propiedad para imagen de perfil desde Django
   role?: string
   roles?: any[]
   role_names?: string[]
@@ -66,33 +69,26 @@ export interface ApiResponse<T = any> {
 }
 
 // Función helper para realizar requests con credenciales
-const fetchWithCredentials = async (
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<Response> => {
-  const url = getApiUrl(endpoint)
+async function fetchWithCredentials(url: string, options: RequestInit = {}) {
+  const headers = new Headers(options.headers)
   
-  // Si estamos en el servidor (server-side), no tenemos acceso a cookies del navegador
-  const isServer = typeof window === 'undefined'
+  // Si es una operación que modifica datos, agregar CSRF token
+  const isModifyingOperation = options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())
   
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...options.headers as Record<string, string>,
-  }
-
-  // En el cliente, intentar obtener el access token de las cookies
-  if (!isServer && typeof document !== 'undefined') {
-    const accessToken = getCookieValue('access-token')
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`
+  if (isModifyingOperation) {
+    const csrfToken = getCSRFToken()
+    if (csrfToken) {
+      headers.set('X-CSRFToken', csrfToken)
     }
   }
-  
-  return fetch(url, {
+
+  const response = await fetch(url, {
     ...options,
-    credentials: 'include', // Importante: incluir cookies HTTP-Only
     headers,
+    credentials: 'include'
   })
+
+  return response
 }
 
 
@@ -105,6 +101,21 @@ const getCookieValue = (name: string): string | null => {
   const parts = value.split(`; ${name}=`)
   if (parts.length === 2) {
     return parts.pop()?.split(';').shift() || null
+  }
+  return null
+}
+
+// Helper para obtener CSRF token
+function getCSRFToken(): string | null {
+  // Django envía el CSRF token en la cookie 'csrftoken'
+  if (typeof document !== 'undefined') {
+    const cookies = document.cookie.split(';')
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=')
+      if (name === 'csrftoken') {
+        return value
+      }
+    }
   }
   return null
 }
@@ -331,4 +342,220 @@ export const authAPI = {
       }
     }
   },
+}
+
+// Profile API functions
+export const profileAPI = {
+  // Obtener perfil del usuario actual
+  async getProfile(): Promise<ApiResponse<User>> {
+    try {
+      // Usar endpoint real del backend Django
+      const response = await fetchWithCredentials('/api/users/me/profile/')
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || errorData.detail || 'Error al obtener perfil')
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.getProfile():', data)
+      
+      return {
+        success: true,
+        data: data,
+        message: 'Perfil obtenido exitosamente'
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.getProfile():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Actualizar perfil del usuario
+  async updateProfile(profileData: Partial<Pick<User, 'first_name' | 'last_name' | 'email' | 'phone'>>): Promise<ApiResponse<User>> {
+    try {
+      // Usar endpoint real del backend Django
+      const response = await fetchWithCredentials('/api/users/me/profile/', {
+        method: 'PUT',
+        body: JSON.stringify(profileData),
+      })
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || errorData.message || 'Sin permisos para actualizar el perfil'
+        console.error('🚫 Error 403 del backend:', errorData)
+        return { success: false, error: `Acceso denegado: ${errorMessage}` }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Error del servidor:', response.status, errorData)
+        throw new Error(errorData.message || errorData.detail || `Error del servidor (${response.status})`)
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.updateProfile():', data)
+      
+      // La respuesta del backend tiene formato: { success: boolean, message: string, user: UserProfile }
+      if (data.success) {
+        return {
+          success: true,
+          data: data.user,
+          message: data.message || 'Perfil actualizado exitosamente'
+        }
+      } else {
+        throw new Error(data.message || 'Error al actualizar perfil')
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.updateProfile():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Obtener solo la imagen de perfil
+  async getProfileImage(): Promise<ApiResponse<{ image_url: string | null; has_image: boolean }>> {
+    try {
+      const response = await fetchWithCredentials('/api/users/me/profile/image/')
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || errorData.detail || 'Error al obtener imagen de perfil')
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.getProfileImage():', data)
+      
+      return {
+        success: true,
+        data: data,
+        message: 'Imagen de perfil obtenida exitosamente'
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.getProfileImage():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Subir/Actualizar imagen de perfil
+  async uploadProfileImage(imageFile: File): Promise<ApiResponse<{ image_url: string }>> {
+    try {
+      const formData = new FormData()
+      formData.append('image', imageFile)
+
+      // Para FormData, no establecer Content-Type headers manualmente
+      const response = await fetch('/api/users/me/profile/image/', {
+        method: 'PUT',
+        body: formData,
+        credentials: 'include'
+      })
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || errorData.message || 'Sin permisos para actualizar imagen'
+        console.error('🚫 Error 403 del backend:', errorData)
+        return { success: false, error: `Acceso denegado: ${errorMessage}` }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Error del servidor:', response.status, errorData)
+        
+        // Manejo específico de errores de validación
+        if (response.status === 400 && errorData.image) {
+          return { success: false, error: errorData.image[0] || 'Error de validación de imagen' }
+        }
+        
+        throw new Error(errorData.message || errorData.detail || `Error del servidor (${response.status})`)
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.uploadProfileImage():', data)
+      
+      return {
+        success: true,
+        data: { image_url: data.image_url },
+        message: data.message || 'Imagen subida exitosamente'
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.uploadProfileImage():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Eliminar imagen de perfil
+  async deleteProfileImage(): Promise<ApiResponse<{ image_url: null }>> {
+    try {
+      const response = await fetchWithCredentials('/api/users/me/profile/image/', {
+        method: 'DELETE',
+      })
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (response.status === 404) {
+        return { success: false, error: 'No hay imagen de perfil para eliminar' }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Error del servidor:', response.status, errorData)
+        throw new Error(errorData.message || errorData.detail || `Error del servidor (${response.status})`)
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.deleteProfileImage():', data)
+      
+      return {
+        success: true,
+        data: { image_url: null },
+        message: data.message || 'Imagen eliminada exitosamente'
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.deleteProfileImage():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Helper para obtener URL completa de imagen
+  getImageUrl(imagePath: string | null): string | null {
+    if (!imagePath) return null
+    // Si ya es una URL completa, devolverla tal como está
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath
+    }
+    // Si es una ruta relativa, construir URL completa
+    return `http://localhost:8000${imagePath}`
+  }
 }

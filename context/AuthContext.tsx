@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { authAPI, User, LoginCredentials } from '@/lib/api'
+import { authAPI, profileAPI, User, LoginCredentials } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
 
 interface AuthContextType {
@@ -12,6 +12,8 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<boolean>
   resetPassword: (token: string, password: string) => Promise<boolean>
   refreshUserData: () => Promise<void>
+  updateUser: (userData: Partial<User>) => Promise<boolean>
+  updateUserImage: (imageUrl: string | null) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -197,6 +199,69 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await checkAuthStatus()
   }
 
+  const updateUser = async (userData: Partial<Pick<User, 'first_name' | 'last_name' | 'email' | 'phone'>>): Promise<boolean> => {
+    try {
+      if (!user) {
+        addToast({
+          type: 'error',
+          message: 'No hay usuario autenticado'
+        })
+        return false
+      }
+
+      console.log('🔄 AuthContext.updateUser - Actualizando usuario:', userData)
+      addToast({ type: 'loading', message: 'Actualizando perfil...' })
+      
+      try {
+        // Llamar a la API real para actualizar el perfil
+        console.log('📡 AuthContext - Llamando a profileAPI.updateProfile...')
+        const response = await profileAPI.updateProfile(userData)
+        console.log('📡 AuthContext - Respuesta de API:', response)
+        
+        if (response.success && response.data) {
+          // Actualizar el estado del usuario con los datos del backend
+          console.log('✅ AuthContext - Actualizando estado del usuario:', response.data)
+          setUser(response.data)
+          
+          addToast({
+            type: 'success',
+            message: response.message || 'Perfil actualizado correctamente'
+          })
+          return true
+        } else {
+          console.error('❌ AuthContext - Error de API:', response.error)
+          // No hacer fallback local para errores de permisos o del servidor
+          addToast({
+            type: 'error',
+            message: response.error || 'Error al actualizar el perfil'
+          })
+          return false
+        }
+      } catch (apiError) {
+        console.error('💥 AuthContext - Error de conexión:', apiError)
+        // Solo hacer fallback local si es realmente un error de conexión
+        addToast({
+          type: 'error',
+          message: 'Error de conexión. Inténtalo de nuevo.'
+        })
+        return false
+      }
+    } catch (error) {
+      console.error('💥 AuthContext - Error general:', error)
+      addToast({
+        type: 'error',
+        message: 'Error al actualizar el perfil'
+      })
+      return false
+    }
+  }
+
+  const updateUserImage = async (imageUrl: string | null): Promise<void> => {
+    if (user) {
+      setUser(prev => prev ? { ...prev, profile_image: imageUrl } : null)
+    }
+  }
+
   const value = {
     user,
     loading,
@@ -205,6 +270,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     forgotPassword,
     resetPassword,
     refreshUserData,
+    updateUser,
+    updateUserImage,
   }
 
   return (

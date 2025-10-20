@@ -101,7 +101,7 @@ export default function Header() {
                       <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                     <a
-                      href="#"
+                      href="/profile"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

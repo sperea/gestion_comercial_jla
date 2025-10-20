@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({ email, password, remember_me: rememberMe })
+      body: JSON.stringify({ email, password })
     })
 
     if (!response.ok) {

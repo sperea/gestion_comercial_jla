@@ -148,17 +148,17 @@ export default function CookieDebugPage() {
               <h4 className="font-semibold">🔍 Pasos para diagnosticar:</h4>
               <ol className="list-decimal list-inside space-y-1 mt-2">
                 <li>Verifica si `jla_remember_me` existe en LocalStorage ✓</li>
-                <li>Haz click en "Verificar Auth Status" para ver los logs del servidor</li>
+                <li>Haz click en &quot;Verificar Auth Status&quot; para ver los logs del servidor</li>
                 <li>Revisa la consola del navegador para logs detallados</li>
-                <li>Si ves "No hay tokens disponibles", las cookies han expirado</li>
-                <li>Si ves "Intentando renovar...", el refresh token también expiró</li>
+                <li>Si ves &quot;No hay tokens disponibles&quot;, las cookies han expirado</li>
+                <li>Si ves &quot;Intentando renovar...&quot;, el refresh token también expiró</li>
               </ol>
             </div>
 
             <div className="mt-4">
               <h4 className="font-semibold">🔧 Soluciones:</h4>
               <ul className="list-disc list-inside space-y-1 mt-2">
-                <li>Si las cookies expiraron: Hacer login nuevamente con "Remember Me" activado</li>
+                <li>Si las cookies expiraron: Hacer login nuevamente con &quot;Remember Me&quot; activado</li>
                 <li>Si persiste: Limpiar todo y empezar desde cero</li>
                 <li>Verificar configuración de duración de cookies en el backend</li>
               </ul>
