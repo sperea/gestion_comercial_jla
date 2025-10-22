@@ -51,6 +51,43 @@ export interface User {
   last_login?: string
 }
 
+export interface UserSettings {
+  id: number
+  user_id: number
+  username: string
+  theme: string
+  language: string
+  date_format: string
+  time_format: string
+  timezone: string
+  is_dark_theme: string
+  email_notifications: boolean
+  notification_frequency: string
+  push_notifications: boolean
+  sound_notifications: boolean
+  dashboard_layout: string
+  items_per_page: number
+  show_welcome_message: boolean
+  profile_visibility: string
+  show_online_status: boolean
+  allow_contact: boolean
+  keyboard_shortcuts: boolean
+  auto_save: boolean
+  auto_logout_minutes: number
+  custom_settings: string
+  settings_summary: string
+  created_at: string
+  updated_at: string
+}
+
+export interface UserSettingsUpdate {
+  date_format: string
+  time_format: string
+  timezone: string
+  is_dark_theme: string
+  email_notifications: boolean
+}
+
 export interface JWTTokens {
   access: string
   refresh: string
@@ -518,8 +555,8 @@ export const profileAPI = {
     }
   },
 
-  // Eliminar imagen de perfil
-  async deleteProfileImage(): Promise<ApiResponse<{ image_url: null }>> {
+    // Eliminar imagen de perfil
+  async deleteProfileImage(): Promise<ApiResponse<{ message: string }>> {
     try {
       const response = await fetchWithCredentials('/api/users/me/profile/image/', {
         method: 'DELETE',
@@ -529,8 +566,11 @@ export const profileAPI = {
         return { success: false, error: 'No autenticado' }
       }
 
-      if (response.status === 404) {
-        return { success: false, error: 'No hay imagen de perfil para eliminar' }
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || errorData.message || 'Sin permisos para eliminar imagen'
+        console.error('🚫 Error 403 del backend:', errorData)
+        return { success: false, error: `Acceso denegado: ${errorMessage}` }
       }
 
       if (!response.ok) {
@@ -544,11 +584,84 @@ export const profileAPI = {
       
       return {
         success: true,
-        data: { image_url: null },
+        data: { message: data.message || 'Imagen eliminada exitosamente' },
         message: data.message || 'Imagen eliminada exitosamente'
       }
     } catch (error) {
       console.error('❌ Error en profileAPI.deleteProfileImage():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Obtener configuración del usuario
+  async getUserSettings(): Promise<ApiResponse<{ count: number; results: UserSettings[] }>> {
+    try {
+      const response = await fetchWithCredentials('/api/users/me/settings/')
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || errorData.detail || 'Error al obtener configuración')
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.getUserSettings():', data)
+      
+      return {
+        success: true,
+        data: data,
+        message: 'Configuración obtenida exitosamente'
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.getUserSettings():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+  // Actualizar configuración del usuario
+  async updateUserSettings(settingsData: Partial<UserSettingsUpdate>): Promise<ApiResponse<UserSettings>> {
+    try {
+      const response = await fetchWithCredentials('/api/users/me/settings/', {
+        method: 'POST',
+        body: JSON.stringify(settingsData),
+      })
+
+      if (response.status === 401) {
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (response.status === 403) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.detail || errorData.message || 'Sin permisos para actualizar configuración'
+        console.error('🚫 Error 403 del backend:', errorData)
+        return { success: false, error: `Acceso denegado: ${errorMessage}` }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Error del servidor:', response.status, errorData)
+        throw new Error(errorData.message || errorData.detail || `Error del servidor (${response.status})`)
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.updateUserSettings():', data)
+      
+      return {
+        success: true,
+        data: data,
+        message: 'Configuración actualizada exitosamente'
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.updateUserSettings():', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Error desconocido'
