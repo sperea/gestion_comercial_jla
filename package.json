@@ -1,7 +1,30 @@
 {
-  "name": "frontend-auth-app",
-  "version": "0.1.0",
+  "name": "colaboradores-frontend",
+  "version": "0.0.1",
+  "description": "Sistema de gestión de colaboradores - Frontend React/Next.js",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sperea/intranet_colaboradores_frontend.git"
+  },
+  "author": {
+    "name": "Sergio Perea",
+    "email": "sperea@jlaasociados.es"
+  },
+  "license": "UNLICENSED",
+  "homepage": "https://github.com/sperea/intranet_colaboradores_frontend#readme",
+  "bugs": {
+    "url": "https://github.com/sperea/intranet_colaboradores_frontend/issues"
+  },
+  "keywords": [
+    "nextjs",
+    "typescript",
+    "tailwindcss",
+    "jwt-authentication",
+    "profile-management",
+    "react",
+    "frontend"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +33,14 @@
     "setup:backend": "./scripts/setup-backend.sh",
     "config:local": "echo 'NEXT_PUBLIC_API_URL=/api' > .env.local && echo '✅ Configurado para desarrollo local'",
     "config:external": "echo 'NEXT_PUBLIC_API_URL=http://localhost:3001/api' > .env.local && echo '✅ Configurado para backend externo (puerto 3001)'",
-    "config:show": "echo '📋 Configuración actual:' && cat .env.local 2>/dev/null || echo '❌ No existe .env.local'"
+    "config:show": "echo '📋 Configuración actual:' && cat .env.local 2>/dev/null || echo '❌ No existe .env.local'",
+    "version:show": "./show_version.sh",
+    "version:check": "./check_version_workflow.sh",
+    "version:current": "cat VERSION.txt 2>/dev/null || echo 'v0.0.1'",
+    "docker:build": "docker build -t colaboradores-frontend .",
+    "docker:run": "docker run -p 3000:3000 colaboradores-frontend",
+    "api:version": "curl -s http://localhost:3000/api/version/ | jq || curl -s http://localhost:3000/api/version/",
+    "api:health": "curl -s http://localhost:3000/api/health/ | jq || curl -s http://localhost:3000/api/health/"
   },
   "dependencies": {
     "js-cookie": "^3.0.5",

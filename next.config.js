@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Configuración para Docker - genera build standalone
+  output: 'standalone',
+  
   images: {
     remotePatterns: [
       {
@@ -15,6 +18,12 @@ const nextConfig = {
         pathname: '/media/**',
       },
     ],
+  },
+  
+  // Variables de entorno para build
+  env: {
+    VERSION: process.env.VERSION || 'v0.0.1',
+    BUILD_DATE: process.env.BUILD_DATE || new Date().toISOString(),
   },
 }
 
