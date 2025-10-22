@@ -7,6 +7,16 @@
 
 # Testing
 /coverage
+# Test cookies with real tokens (keep example files)
+/tests/cookies/*.txt
+!/tests/cookies/README.md
+# Test results and reports
+/tests/results/
+/tests/reports/
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 # Next.js
 /.next/

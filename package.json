@@ -40,7 +40,11 @@
     "docker:build": "docker build -t colaboradores-frontend .",
     "docker:run": "docker run -p 3000:3000 colaboradores-frontend",
     "api:version": "curl -s http://localhost:3000/api/version/ | jq || curl -s http://localhost:3000/api/version/",
-    "api:health": "curl -s http://localhost:3000/api/health/ | jq || curl -s http://localhost:3000/api/health/"
+    "api:health": "curl -s http://localhost:3000/api/health/ | jq || curl -s http://localhost:3000/api/health/",
+    "test:python": "cd tests/python && python test_auth.py && python test_profile_form.py",
+    "test:auth": "cd tests/python && python test_auth.py",
+    "test:profile": "cd tests/python && python test_profile_form.py",
+    "test:setup": "echo '🧪 Para ejecutar tests Python:' && echo '  npm run test:python  # Todos los tests' && echo '  npm run test:auth    # Solo autenticación' && echo '  npm run test:profile # Solo perfil' && echo '' && echo '📋 Prerrequisitos:' && echo '  pip install requests' && echo '  npm run dev          # Servidor corriendo'"
   },
   "dependencies": {
     "js-cookie": "^3.0.5",
