@@ -1,6 +1,6 @@
 {
   "name": "colaboradores-frontend",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Sistema de gestión de colaboradores - Frontend React/Next.js",
   "private": true,
   "repository": {
