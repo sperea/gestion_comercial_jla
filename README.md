@@ -1,4 +1,8 @@
-# JL## 🚀 Características
+# JLA Colaboradores - Sistema de Autenticación Frontend
+
+Aplicación Next.js 15.5.4 completa con autenticación JWT y control de acceso basado en roles, integrada con backend Django. Diseñada con Tailwind CSS y siguiendo las mejores prácticas de seguridad empresarial.
+
+## 🚀 Características
 
 - **🔐 Autenticación JWT Segura**: Cookies HTTP-Only con integración Django
 - **🔑 Recuperación de Contraseña**: Sistema completo con tokens seguros y email
@@ -10,7 +14,8 @@
 - **🔔 Notificaciones Toast**: Sistema rediseñado de feedback visual
 - **🛡️ Rutas Protegidas**: Middleware de autenticación y autorización
 - **🔧 Herramientas Debug**: Páginas de depuración para desarrollo
-- **🌐 Backend Configurable**: URLs configurables via variables de entornores - Sistema de Autenticación Frontend
+- **🌐 Backend Configurable**: URLs configurables via variables de entorno
+- **🏷️ Versionado Automático**: Sistema completo con Conventional Commits y GitHub Actions
 
 Aplicación Next.js 15.5.4 completa con autenticación JWT y control de acceso basado en roles, integrada con backend Django. Diseñada con Tailwind CSS y siguiendo las mejores prácticas de seguridad empresarial.
 
@@ -38,6 +43,9 @@ Aplicación Next.js 15.5.4 completa con autenticación JWT y control de acceso b
 - **Autorización**: Sistema de roles y permisos
 - **API**: Proxy endpoints para integración Django
 - **Validación**: Validación de formularios y permisos en tiempo real
+- **CI/CD**: GitHub Actions con versionado automático
+- **Containerización**: Docker con multi-stage builds
+- **Versionado**: Semantic Versioning con Conventional Commits
 
 ## 📦 Instalación
 
@@ -70,6 +78,22 @@ npm run config:external  # Configurar para backend externo (puerto 3001)
 npm run setup:backend    # Asistente de configuración interactivo
 ```
 
+### Comandos de Versionado y Docker
+
+```bash
+# Versionado
+npm run version:show     # Mostrar versión actual y información del proyecto
+npm run version:check    # Verificar sistema de versionado (API + workflow)
+
+# Docker
+npm run docker:build    # Construir imagen Docker con información de versión
+npm run docker:run      # Ejecutar imagen Docker localmente
+
+# API de Información
+npm run api:version     # Consultar endpoint de versión (/api/version)
+npm run api:health      # Consultar endpoint de salud (/api/health)
+```
+
 ## 🏗️ Estructura del Proyecto
 
 ```
@@ -83,8 +107,11 @@ frontend/
 │   │   │   └── refresh/route.ts # Proxy a Django /api/auth/refresh/
 │   │   ├── users/me/           # Endpoints de usuario
 │   │   │   └── roles/route.ts  # Proxy a Django /api/users/me/roles/
-│   │   └── debug/              # Endpoints de depuración
-│   │       └── me/route.ts     # Debug de información de usuario
+│   │   ├── debug/              # Endpoints de depuración
+│   │   │   └── me/route.ts     # Debug de información de usuario
+│   │   ├── version/route.ts    # Endpoint de información de versión
+│   │   ├── health/route.ts     # Endpoint de health check
+│   │   └── route.ts            # Endpoint de información general del API
 │   ├── dashboard/              # Área protegida principal
 │   │   ├── layout.tsx         # Layout con protección de rutas
 │   │   └── page.tsx           # Dashboard principal
@@ -115,12 +142,19 @@ frontend/
 ├── scripts/             # Scripts de configuración automatizada
 │   ├── setup-backend.js # Configuración interactiva del backend
 │   ├── config-local.js  # Configuración para desarrollo local
-│   └── config-external.js # Configuración para backend externo
+│   ├── config-external.js # Configuración para backend externo
+│   ├── show_version.sh  # Script para mostrar información de versión
+│   └── check_version_workflow.sh # Script para verificar sistema de versionado
 ├── docs/               # Documentación técnica
 │   ├── debug-django-400.md # Debug de errores 400 con Django
 │   └── jwt-endpoints.md    # Documentación de endpoints JWT
 ├── .github/
+│   ├── workflows/
+│   │   └── version-bump.yml # Workflow de versionado automático
 │   └── copilot-instructions.md # Instrucciones del proyecto
+├── VERSION.txt            # Archivo de versión actual
+├── CONVENTIONAL_COMMITS.md # Documentación de commits convencionales
+├── Dockerfile             # Configuración Docker optimizada
 ├── tailwind.config.js     # Configuración de Tailwind
 ├── tsconfig.json          # Configuración de TypeScript
 ├── package.json           # Dependencias del proyecto
@@ -309,6 +343,165 @@ Tipos de notificaciones toast:
 - **Error** (rojo): Errores y validaciones
 - **Loading** (gris): Operaciones en progreso
 
+## 🏷️ Sistema de Versionado Automático
+
+### Características del Sistema
+
+El proyecto incluye un sistema completo de versionado automático basado en **Conventional Commits** y **GitHub Actions**:
+
+- **🤖 Automático**: Calcula versiones basado en tipos de commits
+- **📋 Semantic Versioning**: Sigue estrictamente SemVer (MAJOR.MINOR.PATCH)
+- **📝 Changelog**: Generación automática de notas de lanzamiento
+- **🐳 Docker**: Builds automáticos con tags de versión
+- **🏷️ Releases**: Creación automática de releases en GitHub
+- **📊 APIs**: Endpoints para consultar información de versión
+
+### Flujo de Trabajo
+
+1. **Commit**: Desarrollador hace commit con formato convencional
+2. **Push**: GitHub Actions detecta el push al branch main
+3. **Análisis**: Calcula nueva versión basada en commits desde último tag
+4. **Actualización**: Actualiza VERSION.txt y package.json
+5. **Tag**: Crea tag git con la nueva versión
+6. **Build**: Construye imagen Docker con tag de versión
+7. **Publish**: Publica imagen a GitHub Container Registry
+8. **Release**: Crea release en GitHub con changelog
+
+### Tipos de Commits y Versionado
+
+| Tipo | Descripción | Incremento | Ejemplo |
+|------|-------------|------------|---------|
+| `feat:` | Nueva funcionalidad | **MINOR** | `feat: agregar sistema de notificaciones` |
+| `fix:` | Corrección de bug | **PATCH** | `fix: corregir error de validación` |
+| `BREAKING CHANGE:` | Cambio incompatible | **MAJOR** | `feat!: cambiar API de autenticación` |
+| `docs:` | Solo documentación | Ninguno | `docs: actualizar README` |
+| `style:` | Cambios de formato | Ninguno | `style: formatear código` |
+| `refactor:` | Refactorización | Ninguno | `refactor: optimizar función de login` |
+| `test:` | Agregar tests | Ninguno | `test: agregar tests de autenticación` |
+| `chore:` | Tareas de mantenimiento | Ninguno | `chore: actualizar dependencias` |
+
+### Uso del Sistema
+
+#### 1. Hacer Commits Convencionales
+
+```bash
+# Nueva funcionalidad (incrementa MINOR)
+git commit -m "feat: agregar sistema de recuperación de contraseña"
+
+# Corrección de bug (incrementa PATCH)  
+git commit -m "fix: corregir validación de email en login"
+
+# Cambio breaking (incrementa MAJOR)
+git commit -m "feat!: cambiar estructura de respuesta del API"
+
+# Con descripción extendida
+git commit -m "feat: agregar filtros avanzados
+
+- Implementar filtro por fecha
+- Agregar filtro por estado
+- Mejorar rendimiento de consultas
+
+Closes #123"
+```
+
+#### 2. Consultar Información de Versión
+
+```bash
+# Mostrar información completa
+npm run version:show
+./scripts/show_version.sh
+
+# Consultar API endpoints
+npm run api:version    # GET /api/version
+npm run api:health     # GET /api/health
+
+# Verificar sistema completo
+npm run version:check
+./scripts/check_version_workflow.sh
+```
+
+#### 3. Trabajar con Docker
+
+```bash
+# Construir imagen con versión actual
+npm run docker:build
+
+# Ejecutar imagen localmente
+npm run docker:run
+
+# Ver información de versión en container
+docker run --rm jla-colaboradores-frontend:latest cat /app/VERSION.txt
+```
+
+### APIs de Información
+
+#### GET /api/version
+
+Devuelve información detallada del proyecto:
+
+```json
+{
+  "version": "1.2.3",
+  "name": "JLA Colaboradores Frontend",
+  "framework": "Next.js",
+  "frameworkVersion": "15.5.4",
+  "nodeVersion": "20.x",
+  "buildDate": "2024-01-15T10:30:00Z",
+  "environment": "production",
+  "dependencies": {
+    "react": "19.0.0",
+    "typescript": "5.6.3"
+  },
+  "repository": {
+    "url": "https://github.com/user/repo",
+    "branch": "main",
+    "commit": "abc123def456"
+  }
+}
+```
+
+#### GET /api/health
+
+Endpoint de health check con métricas:
+
+```json
+{
+  "status": "healthy",
+  "version": "1.2.3", 
+  "uptime": 86400,
+  "timestamp": "2024-01-15T10:30:00Z",
+  "memory": {
+    "used": "45.2 MB",
+    "total": "128 MB"
+  },
+  "environment": "production",
+  "services": {
+    "database": "connected",
+    "redis": "connected"
+  }
+}
+```
+
+### Archivos del Sistema
+
+- **`VERSION.txt`**: Versión actual del proyecto
+- **`.github/workflows/version-bump.yml`**: Workflow de GitHub Actions
+- **`CONVENTIONAL_COMMITS.md`**: Guía completa de commits convencionales
+- **`scripts/show_version.sh`**: Script para mostrar información de versión
+- **`scripts/check_version_workflow.sh`**: Script de verificación del sistema
+
+### Configuración de Desarrollo
+
+Para contribuir al proyecto, revisar la guía de commits convencionales:
+
+```bash
+# Ver guía completa
+cat CONVENTIONAL_COMMITS.md
+
+# Verificar formato antes del commit
+npm run lint-commit  # (si está configurado)
+```
+
 ## 🚀 Comandos Disponibles
 
 ```bash
@@ -318,6 +511,16 @@ npm run dev          # Servidor de desarrollo en puerto 3000
 # Producción
 npm run build        # Compilar para producción
 npm start           # Ejecutar versión compilada
+
+# Versionado
+npm run version:show    # Mostrar información de versión
+npm run version:check   # Verificar sistema de versionado
+npm run api:version     # Consultar API de versión
+npm run api:health      # Consultar API de salud
+
+# Docker
+npm run docker:build   # Construir imagen Docker
+npm run docker:run     # Ejecutar imagen Docker
 
 # Calidad de código
 npm run lint        # Verificar código con ESLint
@@ -499,6 +702,14 @@ npm run config:local    # Django localhost:8000
 npm run config:external # Backend personalizado
 npm run config:show     # Mostrar configuración actual
 
+# Versionado y Despliegue
+npm run version:show    # Información completa de versión
+npm run version:check   # Verificar sistema de versionado
+npm run api:version     # Consultar endpoint /api/version
+npm run api:health      # Consultar endpoint /api/health
+npm run docker:build    # Construir imagen Docker
+npm run docker:run      # Ejecutar imagen Docker
+
 # Calidad de código
 npm run lint           # ESLint
 npm run type-check     # Verificación TypeScript
@@ -517,6 +728,11 @@ npm run type-check     # Verificación TypeScript
 - [x] **Documentación Completa** técnica y de usuario
 - [x] **UI Corporativa JLA** con Tailwind CSS
 - [x] **TypeScript** completo con tipos definidos
+- [x] **Sistema de Versionado Automático** con GitHub Actions
+- [x] **Conventional Commits** con documentación completa
+- [x] **APIs de Información** (/api/version, /api/health)
+- [x] **Docker Integration** con multi-stage builds
+- [x] **CI/CD Pipeline** con releases automáticos
 
 ### 🚀 Próximos Pasos
 
@@ -525,12 +741,52 @@ npm run type-check     # Verificación TypeScript
 - [ ] Implementación de modo oscuro
 - [ ] Internacionalización (i18n)
 - [ ] PWA con Service Workers
-- [ ] Analytics y monitoreo
-- [ ] CI/CD pipeline
+- [ ] Analytics y monitoreo integrado
+- [ ] Notificaciones push
+- [ ] Métricas de rendimiento
+- [ ] Monitoreo de errores (Sentry)
+- [ ] Optimización de bundle size
 
 ## 👥 Contribución
 
-Este proyecto sigue las mejores prácticas de desarrollo:
+Este proyecto sigue las mejores prácticas de desarrollo empresarial:
+
+### Workflow de Desarrollo
+
+1. **Fork y Clone**: Hacer fork del repositorio y clonar localmente
+2. **Branch**: Crear branch desde `main` con nombre descriptivo
+3. **Desarrollo**: Implementar cambios siguiendo los estándares del proyecto
+4. **Commits**: Usar **Conventional Commits** para todos los commits
+5. **Testing**: Verificar que todo funcione correctamente
+6. **Pull Request**: Crear PR con descripción detallada
+7. **Review**: Code review y aprobación del equipo
+8. **Merge**: Al hacer merge a `main`, se activa el versionado automático
+
+### Estándares de Commits
+
+```bash
+# ✅ Ejemplos correctos
+git commit -m "feat: agregar sistema de notificaciones push"
+git commit -m "fix: corregir error de validación en formulario de login"  
+git commit -m "docs: actualizar documentación de API"
+git commit -m "refactor: optimizar componente de autenticación"
+
+# ❌ Ejemplos incorrectos  
+git commit -m "cambios varios"
+git commit -m "fix bug"
+git commit -m "actualización"
+```
+
+Ver [CONVENTIONAL_COMMITS.md](./CONVENTIONAL_COMMITS.md) para la guía completa.
+
+### Proceso de Versionado
+
+- **Automatic**: Al hacer merge a `main`, GitHub Actions analiza los commits
+- **Semantic**: Calcula la nueva versión según los tipos de cambios
+- **Release**: Crea automáticamente tags, releases y builds Docker
+- **Notification**: Notifica al equipo sobre nuevas versiones
+
+### Mejores Prácticas
 
 1. **Commits Convencionales**: `feat:`, `fix:`, `docs:`, etc.
 2. **Código Limpio**: Principios SOLID aplicados
@@ -538,6 +794,10 @@ Este proyecto sigue las mejores prácticas de desarrollo:
 4. **Responsividad**: Mobile-first approach
 5. **Seguridad**: JWT + cookies HTTP-Only + CORS configurado
 6. **Debugging**: Herramientas integradas para desarrollo
+7. **Versionado Semántico**: Seguir SemVer estrictamente
+8. **Testing**: Tests antes de cada PR
+9. **Type Safety**: TypeScript en modo strict
+10. **Performance**: Optimización de bundle y rendering
 
 ## 📄 Licencia
 
