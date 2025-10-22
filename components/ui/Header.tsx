@@ -10,14 +10,6 @@ export default function Header() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
 
-  const handleLogout = async () => {
-    await logout()
-  }
-
-  const userInitials = user?.name 
-    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() 
-    : user?.email?.charAt(0).toUpperCase() || 'U'
-
   // Cerrar menú de perfil cuando se hace clic fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -31,6 +23,46 @@ export default function Header() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  const handleLogout = async () => {
+    await logout()
+  }
+
+  // Función para obtener el nombre completo del usuario
+  const getUserFullName = () => {
+    if (!user) return null
+    if (user?.name) return user.name
+    if (user?.full_name) return user.full_name
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`
+    }
+    if (user?.first_name) return user.first_name
+    return null
+  }
+
+  const userFullName = getUserFullName()
+  
+  const userInitials = userFullName
+    ? userFullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+    : user?.email?.charAt(0).toUpperCase() || 'U'
+
+  // Función para verificar si el email es válido (no placeholder)
+  const isValidUserEmail = (email: string | undefined) => {
+    if (!email) return false
+    // Lista de emails placeholder comunes que no son válidos
+    const placeholderEmails = [
+      'user@email.com',
+      'user@example.com', 
+      'admin@example.com',
+      'test@test.com',
+      'example@example.com'
+    ]
+    return !placeholderEmails.includes(email.toLowerCase())
+  }
+
+  // Determinar si mostrar datos del usuario o estado de carga
+  const hasValidUser = user && user.email && isValidUserEmail(user.email)
+  const showUserData = hasValidUser && userFullName
 
   return (
     <header className="bg-white shadow-lg border-b border-gray-200 mb-4">
@@ -84,8 +116,12 @@ export default function Header() {
                   <span className="text-white font-bold text-sm">{userInitials}</span>
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-gray-900 font-medium">{user?.name || 'Usuario'}</p>
-                  <p className="text-gray-500 text-xs">{user?.email}</p>
+                  <p className="text-gray-900 font-medium">
+                    {showUserData ? userFullName : 'Cargando sesión...'}
+                  </p>
+                  <p className="text-gray-500 text-xs">
+                    {showUserData ? user.email : ''}
+                  </p>
                 </div>
                 <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -97,8 +133,12 @@ export default function Header() {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                   <div className="py-1">
                     <div className="px-4 py-2 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-900">{user?.name || 'Usuario'}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {showUserData ? userFullName : 'Cargando sesión...'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {showUserData ? user.email : ''}
+                      </p>
                     </div>
                     <a
                       href="/profile"

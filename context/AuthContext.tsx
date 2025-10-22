@@ -40,32 +40,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuthStatus()
   }, [])
 
-  // Debug: monitorear cambios en el usuario
-  useEffect(() => {
-    console.log('🔄 AuthContext - user state cambió:', user)
-  }, [user])
-
   const checkAuthStatus = async () => {
     try {
       // Verificar si el usuario tiene sesión guardada para "recordarme"
       const rememberMe = localStorage.getItem('jla_remember_me') === 'true'
-      console.log('🔍 Verificando estado de autenticación... rememberMe:', rememberMe)
       
       const response = await authAPI.me()
       if (response.success && response.data) {
         setUser(response.data)
-        console.log('✅ Sesión activa encontrada:', response.data.email)
       } else {
         setUser(null)
         // Si no hay sesión activa y no está marcado "recordarme", limpiar localStorage
         if (!rememberMe) {
           localStorage.removeItem('jla_remember_me')
         }
-        console.log('❌ No hay sesión activa')
       }
     } catch (error) {
       setUser(null)
-      console.log('💥 Error verificando sesión:', error)
     } finally {
       setLoading(false)
     }
@@ -79,27 +70,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const response = await authAPI.login(credentials)
       
-      console.log('📡 Respuesta del authAPI.login:', response)
-      console.log('📋 response.data completo:', response.data)
-      console.log('🔍 Claves en response.data:', response.data ? Object.keys(response.data) : 'N/A')
-      
       if (response.success && response.data) {
         // La respuesta ahora incluye { user, tokens }
         const { user } = response.data
-        console.log('👤 Usuario extraído de la respuesta:', user)
-        console.log('🔄 Estableciendo usuario en el estado...')
         setUser(user)
         
         // Manejar la opción "Recordarme"
         if (credentials.rememberMe) {
           localStorage.setItem('jla_remember_me', 'true')
-          console.log('💾 Sesión marcada para recordar')
         } else {
           localStorage.removeItem('jla_remember_me')
-          console.log('🗑️ Sesión NO marcada para recordar')
         }
         
-        console.log('✅ setUser ejecutado')
         // El toast de success automáticamente limpiará el de loading
         addToast({ type: 'success', message: 'Sesión iniciada exitosamente' })
         return true
@@ -209,18 +191,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false
       }
 
-      console.log('🔄 AuthContext.updateUser - Actualizando usuario:', userData)
       addToast({ type: 'loading', message: 'Actualizando perfil...' })
       
       try {
         // Llamar a la API real para actualizar el perfil
-        console.log('📡 AuthContext - Llamando a profileAPI.updateProfile...')
         const response = await profileAPI.updateProfile(userData)
-        console.log('📡 AuthContext - Respuesta de API:', response)
         
         if (response.success && response.data) {
           // Actualizar el estado del usuario con los datos del backend
-          console.log('✅ AuthContext - Actualizando estado del usuario:', response.data)
           setUser(response.data)
           
           addToast({
@@ -229,7 +207,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           })
           return true
         } else {
-          console.error('❌ AuthContext - Error de API:', response.error)
           // No hacer fallback local para errores de permisos o del servidor
           addToast({
             type: 'error',
@@ -238,7 +215,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return false
         }
       } catch (apiError) {
-        console.error('💥 AuthContext - Error de conexión:', apiError)
         // Solo hacer fallback local si es realmente un error de conexión
         addToast({
           type: 'error',
@@ -247,7 +223,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false
       }
     } catch (error) {
-      console.error('💥 AuthContext - Error general:', error)
       addToast({
         type: 'error',
         message: 'Error al actualizar el perfil'

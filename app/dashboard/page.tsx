@@ -12,6 +12,21 @@ import TimeDisplay, { WeatherWidget, SystemStatus, QuickAction } from '@/compone
 export default function DashboardPage() {
   const { user } = useAuth()
 
+  // Función para obtener el nombre completo del usuario
+  const getUserDisplayName = () => {
+    if (!user) return 'Usuario'
+    if (user?.name) return user.name
+    if (user?.full_name) return user.full_name
+    if (user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`
+    }
+    if (user?.first_name) return user.first_name
+    if (user?.email) return user.email.split('@')[0] // Usar la parte antes del @ como nombre
+    return 'Usuario'
+  }
+
+  const userDisplayName = getUserDisplayName()
+
   // Datos de ejemplo para las métricas
   const projectData = [
     { label: 'Activos', value: 8, color: 'bg-gradient-to-r from-green-500 to-green-600' },
@@ -31,7 +46,7 @@ export default function DashboardPage() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                ¡Bienvenido de vuelta, {user?.name || 'Usuario'}! 👋
+                ¡Bienvenido de vuelta, {userDisplayName}! 👋
               </h1>
               <p className="mt-2 text-gray-600">
                 Aquí tienes un resumen de tu actividad y el estado del sistema
@@ -252,7 +267,7 @@ export default function DashboardPage() {
           <ChartCard title="Actividad Reciente" subtitle="Últimas acciones en el sistema">
             <div className="space-y-1">
               <ActivityItem
-                user={user?.name || "Usuario"}
+                user={userDisplayName}
                 action="inició sesión en"
                 target="el dashboard"
                 time="Hace 2 minutos"
