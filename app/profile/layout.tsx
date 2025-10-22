@@ -1,11 +1,9 @@
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout'
 
-interface ProtectedRouteProps {
+interface ProfileLayoutProps {
   children: React.ReactNode
-  params: any
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+export default function ProfileLayout({ children }: ProfileLayoutProps) {
   return <AuthenticatedLayout>{children}</AuthenticatedLayout>
 }
-
