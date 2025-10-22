@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
+import { profileAPI } from '@/lib/api'
 
 export default function Header() {
   const { user, logout } = useAuth()
@@ -64,6 +65,15 @@ export default function Header() {
   const hasValidUser = user && user.email && isValidUserEmail(user.email)
   const showUserData = hasValidUser && userFullName
 
+  // Debug de imagen de perfil
+  if (user) {
+    console.log('🖼️ Header - Imagen de perfil:', {
+      email: user?.email,
+      has_image: !!user?.profile_image,
+      image_url: user?.profile_image ? profileAPI.getImageUrl(user.profile_image) : null
+    })
+  }
+
   return (
     <header className="bg-white shadow-lg border-b border-gray-200 mb-4">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -114,8 +124,21 @@ export default function Header() {
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center space-x-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg p-2 hover:bg-gray-50 transition-colors"
               >
-                <div className="h-8 w-8 bg-gradient-to-r from-primary to-red-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">{userInitials}</span>
+                {/* Avatar del usuario - imagen o iniciales */}
+                <div className="h-8 w-8 rounded-full overflow-hidden">
+                  {user?.profile_image ? (
+                    <Image
+                      src={profileAPI.getImageUrl(user.profile_image) || '/img/default-avatar.png'}
+                      alt="Foto de perfil"
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-r from-primary to-red-600 flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">{userInitials}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-gray-900 font-medium">

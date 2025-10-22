@@ -435,6 +435,14 @@ export const profileAPI = {
         return { success: false, error: 'No autenticado' }
       }
 
+      if (response.status === 404) {
+        return { 
+          success: true, 
+          data: { image_url: null, has_image: false },
+          message: 'Usuario sin imagen de perfil'
+        }
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.message || errorData.detail || 'Error al obtener imagen de perfil')
@@ -555,7 +563,7 @@ export const profileAPI = {
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath
     }
-    // Si es una ruta relativa, construir URL completa
-    return `http://localhost:8000${imagePath}`
+    // Si es una ruta relativa, construir URL completa usando la configuración del backend
+    return `${config.apiUrl}${imagePath}`
   }
 }

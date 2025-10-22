@@ -47,7 +47,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const response = await authAPI.me()
       if (response.success && response.data) {
-        setUser(response.data)
+        console.log('🔍 AuthContext - Datos completos del usuario:', response.data)
+        
+        // Llamar a refreshUserData inmediatamente para obtener la imagen de perfil
+        await refreshUserData()
       } else {
         setUser(null)
         // Si no hay sesión activa y no está marcado "recordarme", limpiar localStorage
@@ -56,6 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } catch (error) {
+      console.error('❌ AuthContext - Error en checkAuthStatus:', error)
       setUser(null)
     } finally {
       setLoading(false)
@@ -80,6 +84,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('jla_remember_me', 'true')
         } else {
           localStorage.removeItem('jla_remember_me')
+        }
+        
+        // Obtener datos completos del perfil (incluyendo imagen) después del login
+        try {
+          await refreshUserData()
+        } catch (error) {
+          console.log('⚠️ No se pudieron cargar datos completos del perfil, pero login exitoso:', error)
         }
         
         // El toast de success automáticamente limpiará el de loading
@@ -178,7 +189,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const refreshUserData = async (): Promise<void> => {
-    await checkAuthStatus()
+    try {
+      console.log('🔄 AuthContext - Iniciando refreshUserData...')
+      
+      // Obtener datos básicos del perfil
+      const response = await authAPI.me()
+      
+      if (response.success && response.data) {
+        // Obtener imagen de perfil por separado
+        const imageResponse = await profileAPI.getProfileImage()
+        
+        let userData = response.data
+        if (imageResponse.success && imageResponse.data?.image_url) {
+          userData = { ...userData, profile_image: imageResponse.data.image_url }
+        }
+        
+        setUser(userData)
+      } else {
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('❌ AuthContext - Error en refreshUserData:', error)
+      setUser(null)
+    }
   }
 
   const updateUser = async (userData: Partial<Pick<User, 'first_name' | 'last_name' | 'email' | 'phone'>>): Promise<boolean> => {
