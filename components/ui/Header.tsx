@@ -71,6 +71,7 @@ export default function Header() {
           {/* Logo y marca */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
+              <a href="/">
               <Image
                 src="/img/logo.webp"
                 alt="JLA Asociados"
@@ -78,6 +79,7 @@ export default function Header() {
                 height={50}
                 className="object-contain"
               />
+              </a>
             </div>
           </div>
             
