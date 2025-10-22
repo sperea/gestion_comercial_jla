@@ -15,11 +15,6 @@ jobs:
     name: 🚀 Versionado y Release Automático
     runs-on: ubuntu-latest
     
-    outputs:
-      version: ${{ steps.semver.outputs.version }}
-      previous_version: ${{ steps.semver.outputs.previous_version }}
-      has_changes: ${{ steps.semver.outputs.version != steps.semver.outputs.previous_version }}
-    
     steps:
       - name: 📥 Checkout código
         uses: actions/checkout@v4
@@ -32,116 +27,137 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 🏷️ Obtener última versión
-        id: get-version
+      - name: 🏷️ Obtener versión actual y calcular nueva
+        id: version
         run: |
-          if [ -f "VERSION.txt" ]; then
-            CURRENT_VERSION=$(cat VERSION.txt)
-            echo "current_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
-            echo "📋 Versión actual: ${CURRENT_VERSION}"
+          # Obtener la última versión
+          CURRENT_VERSION=$(cat VERSION.txt 2>/dev/null || echo "v0.1.0")
+          echo "current_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
+          
+          # Obtener el último tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")
+          echo "last_tag=${LAST_TAG}" >> $GITHUB_OUTPUT
+          
+          # Analizar commits desde el último tag
+          COMMITS=$(git log ${LAST_TAG}..HEAD --oneline)
+          echo "commits_since_tag=$(echo "$COMMITS" | wc -l)" >> $GITHUB_OUTPUT
+          
+          # Determinar el tipo de bump basado en commits convencionales
+          BUMP_TYPE="patch"
+          
+          if echo "$COMMITS" | grep -q "BREAKING CHANGE\|feat!:"; then
+            BUMP_TYPE="major"
+          elif echo "$COMMITS" | grep -q "^feat:"; then
+            BUMP_TYPE="minor"
+          elif echo "$COMMITS" | grep -q "^fix:"; then
+            BUMP_TYPE="patch"
           else
-            echo "current_version=v0.0.0" >> $GITHUB_OUTPUT
-            echo "📋 No existe VERSION.txt, iniciando en v0.0.0"
+            # Si no hay commits convencionales relevantes, no hacer bump
+            if [ $(echo "$COMMITS" | wc -l) -eq 0 ]; then
+              echo "skip_version=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
           fi
-
-      - name: 🧮 Calcular nueva versión
-        id: semver
-        uses: ietf-tools/semver-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
-          fromTag: ${{ steps.get-version.outputs.current_version }}
-
-      - name: 📊 Mostrar información de versión
-        run: |
-          echo "🔍 Análisis de versionado:"
-          echo "  📌 Versión anterior: ${{ steps.semver.outputs.previous_version }}"
-          echo "  🆕 Nueva versión: ${{ steps.semver.outputs.version }}"
-          echo "  📈 Tipo de cambio: ${{ steps.semver.outputs.bump }}"
-          echo "  💭 Commits analizados: ${{ steps.semver.outputs.commits }}"
+          
+          echo "bump_type=${BUMP_TYPE}" >> $GITHUB_OUTPUT
+          
+          # Calcular nueva versión
+          VERSION_PARTS=(${CURRENT_VERSION//v})
+          VERSION_PARTS=(${VERSION_PARTS//./ })
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+          
+          case $BUMP_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          
+          echo "📋 Información de versionado:"
+          echo "  📌 Versión actual: ${CURRENT_VERSION}"
+          echo "  🆕 Nueva versión: ${NEW_VERSION}"
+          echo "  📈 Tipo de cambio: ${BUMP_TYPE}"
+          echo "  💭 Commits desde último tag: $(echo "$COMMITS" | wc -l)"
 
       - name: 📝 Actualizar VERSION.txt
-        if: steps.semver.outputs.version != steps.semver.outputs.previous_version
+        if: steps.version.outputs.skip_version != 'true'
         run: |
-          echo "${{ steps.semver.outputs.version }}" > VERSION.txt
-          echo "✅ VERSION.txt actualizado a ${{ steps.semver.outputs.version }}"
+          echo "${{ steps.version.outputs.new_version }}" > VERSION.txt
+          echo "✅ VERSION.txt actualizado a ${{ steps.version.outputs.new_version }}"
 
       - name: 📦 Actualizar package.json
-        if: steps.semver.outputs.version != steps.semver.outputs.previous_version
+        if: steps.version.outputs.skip_version != 'true'
         run: |
-          # Remover la 'v' del inicio para package.json
-          VERSION_NUMBER=$(echo "${{ steps.semver.outputs.version }}" | sed 's/^v//')
-          
-          # Actualizar version en package.json usando jq si está disponible
-          if command -v jq &> /dev/null; then
-            jq ".version = \"${VERSION_NUMBER}\"" package.json > package.json.tmp
-            mv package.json.tmp package.json
-          else
-            # Fallback usando sed si jq no está disponible
-            sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION_NUMBER}\"/" package.json
-          fi
-          
+          VERSION_NUMBER=$(echo "${{ steps.version.outputs.new_version }}" | sed 's/^v//')
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION_NUMBER}\"/" package.json
           echo "✅ package.json actualizado a ${VERSION_NUMBER}"
-          
-          # Mostrar los cambios
-          echo "📋 Cambios en package.json:"
-          head -10 package.json | grep -A5 -B5 "version"
 
       - name: 🔄 Commit cambios de versión
-        if: steps.semver.outputs.version != steps.semver.outputs.previous_version
+        if: steps.version.outputs.skip_version != 'true'
         run: |
           git add VERSION.txt package.json
-          git commit -m "chore(release): bump version to ${{ steps.semver.outputs.version }}
+          git commit -m "chore(release): bump version to ${{ steps.version.outputs.new_version }}
 
-          📦 Automated version bump:
-          - Previous: ${{ steps.semver.outputs.previous_version }}
-          - Current: ${{ steps.semver.outputs.version }}
-          - Type: ${{ steps.semver.outputs.bump }}
+          📦 Automated version bump
+          - New version: ${{ steps.version.outputs.new_version }}
+          - Type: ${{ steps.version.outputs.bump_type }}
           
           [skip ci]"
           
           echo "✅ Cambios de versión committeados"
 
       - name: 🏷️ Crear Tag de Git
-        if: steps.semver.outputs.version != steps.semver.outputs.previous_version
+        if: steps.version.outputs.skip_version != 'true'
         run: |
-          git tag -a "${{ steps.semver.outputs.version }}" -m "🚀 Release ${{ steps.semver.outputs.version }}
+          git tag -a "${{ steps.version.outputs.new_version }}" -m "🚀 Release ${{ steps.version.outputs.new_version }}
 
           📋 Frontend JLA Colaboradores
-          🔖 Version: ${{ steps.semver.outputs.version }}
+          🔖 Version: ${{ steps.version.outputs.new_version }}
           📅 Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          🔄 Type: ${{ steps.semver.outputs.bump }}
+          🔄 Type: ${{ steps.version.outputs.bump_type }}
           
-          🌟 Features:
+          🌟 Características:
           - Next.js 15.5.4 with TypeScript
           - JWT Authentication with HTTP-Only cookies
           - Profile management with image upload
           - Corporate branding integration
-          - Responsive design with Tailwind CSS"
+          - Responsive design with Tailwind CSS
+          - Automatic versioning system"
           
-          echo "✅ Tag ${{ steps.semver.outputs.version }} creado"
+          echo "✅ Tag ${{ steps.version.outputs.new_version }} creado"
 
       - name: 📤 Push cambios y tags
-        if: steps.semver.outputs.version != steps.semver.outputs.previous_version
+        if: steps.version.outputs.skip_version != 'true'
         run: |
           git push origin main
-          git push origin "${{ steps.semver.outputs.version }}"
+          git push origin "${{ steps.version.outputs.new_version }}"
           echo "✅ Cambios y tags pusheados al repositorio"
 
       - name: 📋 Generar Changelog
-        if: steps.semver.outputs.version != steps.semver.outputs.previous_version
-        id: changelog
+        if: steps.version.outputs.skip_version != 'true'
         run: |
-          echo "Generating changelog for ${{ steps.semver.outputs.version }}"
+          echo "Generando changelog para ${{ steps.version.outputs.new_version }}"
           
-          # Crear changelog básico
           cat << EOF > RELEASE_NOTES.md
-          # 🚀 Release ${{ steps.semver.outputs.version }}
+          # 🚀 Release ${{ steps.version.outputs.new_version }}
           
           ## 📅 Información de Release
-          - **Versión**: ${{ steps.semver.outputs.version }}
+          - **Versión**: ${{ steps.version.outputs.new_version }}
           - **Fecha**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          - **Tipo**: ${{ steps.semver.outputs.bump }}
+          - **Tipo**: ${{ steps.version.outputs.bump_type }}
           - **Branch**: main
           
           ## 📋 Commits en este Release
@@ -149,137 +165,55 @@ jobs:
           EOF
           
           # Obtener commits desde el último tag
-          if [ "${{ steps.semver.outputs.previous_version }}" != "" ]; then
-            echo "Obteniendo commits desde ${{ steps.semver.outputs.previous_version }}"
-            git log --pretty=format:"- %s (%h)" ${{ steps.semver.outputs.previous_version }}..HEAD >> RELEASE_NOTES.md
-          else
-            echo "Primera release, obteniendo todos los commits"
-            git log --pretty=format:"- %s (%h)" >> RELEASE_NOTES.md
-            
-          fi
+          git log ${{ steps.version.outputs.last_tag }}..HEAD --pretty=format:"- %s (%h)" >> RELEASE_NOTES.md
           
-          echo "" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-          echo "## 🌟 Características del Frontend" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-          echo "- **Framework**: Next.js 15.5.4" >> RELEASE_NOTES.md
-          echo "- **Lenguaje**: TypeScript" >> RELEASE_NOTES.md
-          echo "- **Estilos**: Tailwind CSS" >> RELEASE_NOTES.md
-          echo "- **Autenticación**: JWT con cookies HTTP-Only" >> RELEASE_NOTES.md
-          echo "- **Estado**: React Context API" >> RELEASE_NOTES.md
-          echo "- **Notificaciones**: React Hot Toast" >> RELEASE_NOTES.md
-          echo "- **Imágenes**: Sistema completo de perfil" >> RELEASE_NOTES.md
+          cat << EOF >> RELEASE_NOTES.md
           
-          # Mostrar el changelog generado
+          ## 🌟 Características del Frontend
+          
+          - **Framework**: Next.js 15.5.4
+          - **Lenguaje**: TypeScript
+          - **Estilos**: Tailwind CSS
+          - **Autenticación**: JWT con cookies HTTP-Only
+          - **Estado**: React Context API
+          - **Notificaciones**: React Hot Toast
+          - **Imágenes**: Sistema completo de perfil
+          - **Versionado**: Sistema automático con Conventional Commits
+          EOF
+          
           echo "📋 Changelog generado:"
           cat RELEASE_NOTES.md
 
       - name: 🎉 Crear GitHub Release
-        if: steps.semver.outputs.version != steps.semver.outputs.previous_version
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.version.outputs.skip_version != 'true'
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.semver.outputs.version }}
-          release_name: 🚀 Frontend JLA v${{ steps.semver.outputs.version }}
+          tag_name: ${{ steps.version.outputs.new_version }}
+          name: 🚀 Frontend JLA ${{ steps.version.outputs.new_version }}
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-  build-docker:
-    name: 🐳 Construir Imagen Docker
-    runs-on: ubuntu-latest
-    needs: version-bump
-    if: needs.version-bump.outputs.has_changes == 'true'
-    
-    steps:
-      - name: 📥 Checkout código
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: 📦 Instalar dependencias
-        run: npm ci
-
-      - name: 🏗️ Build aplicación
-        run: npm run build
-
-      - name: 🏷️ Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🔐 Login a GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 📋 Extraer metadatos
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/colaboradores-frontend
-          tags: |
-            type=semver,pattern={{version}},value=${{ needs.version-bump.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.version-bump.outputs.version }}
-            type=raw,value=latest
-
-      - name: 🐳 Build y Push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ needs.version-bump.outputs.version }}
-            BUILD_DATE=${{ steps.meta.outputs.date }}
-
-      - name: ✅ Resumen Docker Build
-        run: |
-          echo "🐳 Docker Build Completado:"
-          echo "  📦 Imagen: ghcr.io/${{ github.repository_owner }}/colaboradores-frontend"
-          echo "  🏷️ Tags: ${{ steps.meta.outputs.tags }}"
-          echo "  📋 Versión: ${{ needs.version-bump.outputs.version }}"
-
-  notify-completion:
-    name: 📢 Notificación de Completado
-    runs-on: ubuntu-latest
-    needs: [version-bump, build-docker]
-    if: always() && needs.version-bump.outputs.has_changes == 'true'
-    
-    steps:
-      - name: 🎉 Resumen Final
+      - name: ✅ Resumen Final
+        if: steps.version.outputs.skip_version != 'true'
         run: |
           echo "🚀 VERSIONADO AUTOMÁTICO COMPLETADO"
           echo "=================================="
           echo ""
           echo "📋 Detalles del Release:"
-          echo "  🔖 Nueva Versión: ${{ needs.version-bump.outputs.version }}"
+          echo "  🔖 Nueva Versión: ${{ steps.version.outputs.new_version }}"
           echo "  📅 Fecha: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           echo "  🌐 Repository: ${{ github.repository }}"
           echo "  🎯 Branch: ${{ github.ref_name }}"
           echo ""
-          echo "✅ Tareas Completadas:"
-          echo "  - ✅ Versionado automático"
-          echo "  - ✅ Actualización de archivos"
-          echo "  - ✅ Git tagging"
-          echo "  - ✅ GitHub Release"
-          if [ "${{ needs.build-docker.result }}" == "success" ]; then
-            echo "  - ✅ Docker build y push"
-          else
-            echo "  - ❌ Docker build falló"
-          fi
-          echo ""
           echo "🔗 Enlaces:"
           echo "  📦 Releases: https://github.com/${{ github.repository }}/releases"
-          echo "  🐳 Docker: https://github.com/${{ github.repository }}/pkgs/container/colaboradores-frontend"
           echo "  ⚡ Actions: https://github.com/${{ github.repository }}/actions"
+
+      - name: ℹ️ Sin cambios de versión
+        if: steps.version.outputs.skip_version == 'true'
+        run: |
+          echo "ℹ️ No se requiere cambio de versión"
+          echo "  📌 Versión actual: ${{ steps.version.outputs.current_version }}"
+          echo "  📋 No hay commits convencionales relevantes desde el último tag"
