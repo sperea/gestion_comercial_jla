@@ -6,6 +6,7 @@ import { profileAPI, UserSettings, UserSettingsUpdate } from '@/lib/api'
 import Header from '@/components/ui/Header'
 import Button from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout'
 
 const ConfiguracionPage = () => {
   const { user } = useAuth()
@@ -175,20 +176,23 @@ const ConfiguracionPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <AuthenticatedLayout>
+        <div className="bg-gray-50 min-h-screen">
+          <Header />
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
         </div>
-      </div>
+      </AuthenticatedLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <main className="py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+    <AuthenticatedLayout>
+      <div className="bg-gray-50 min-h-screen">
+        <Header />
+        <main className="py-8 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
@@ -357,9 +361,10 @@ const ConfiguracionPage = () => {
             )}
           </Button>
         </div>
-        </div>
-      </main>
-    </div>
+          </div>
+        </main>
+      </div>
+    </AuthenticatedLayout>
   )
 }
 
