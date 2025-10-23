@@ -34,8 +34,31 @@ async function forwardRequest(request: NextRequest, path: string) {
     
     console.log(`🍪 Cookies being forwarded:`, cookies ? 'Present' : 'None')
 
-    // Configurar la request al backend
-    const backendUrl = `${API_BASE_URL}${path}`
+    // Construir URL al backend de forma robusta:
+    // - Evitar duplicar segmentos (ej. /api/api/...)
+    // - Si `API_BASE_URL` es relativo (p. ej. '/api'), resolverlo contra el origin de la request
+    // - Si `API_BASE_URL` es absoluto (http://...), usarlo tal cual
+    const buildBackendUrl = (base: string, rawPath: string) => {
+      const cleanBase = base.replace(/\/+$|^\s+|\s+$/g, '') // sin slashes finales
+      const cleanPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+
+      // Si la base es absoluta, simplemente concatenar (sin duplicar slash)
+      if (/^https?:\/\//i.test(cleanBase)) {
+        return cleanBase.replace(/\/+$/g, '') + cleanPath
+      }
+
+      // Si la base es relativo (p. ej. '/api') o vacío, resolver contra el origin de la request
+      // Si el cleanPath ya comienza con el cleanBase (ej. base '/api' y path '/api/...'), usar sólo el path
+      if (cleanBase && cleanPath.startsWith(cleanBase)) {
+        return new URL(cleanPath, request.url).toString()
+      }
+
+      // Caso general: unir base + path y resolver contra origin
+      const joined = (cleanBase ? cleanBase.replace(/^\/+/, '/') : '') + cleanPath
+      return new URL(joined, request.url).toString()
+    }
+
+    const backendUrl = buildBackendUrl(API_BASE_URL, path)
     const requestOptions: RequestInit = {
       method: request.method,
       headers,
