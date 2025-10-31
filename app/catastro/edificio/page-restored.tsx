@@ -1,56 +1,31 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
-// Interfaz actualizada para el endpoint mejorado del backend
+// Nueva interfaz para el endpoint actualizado
 interface InmuebleDetalle {
   ref_catastral: string
-  nombre_provincia: string
-  nombre_municipio: string
-  via_completa: string
-  tipo_via: string
-  nombre_via: string
-  numero: string
-  num_policia_1: string
-  letra_1: string
-  num_policia_2: string
-  letra_2: string
-  cp: string
-  bloque: string
+  uso_principal: "VIVIENDA" | "ALMACEN" | "APARCAMIENTO" | "CCE" | "ELEMENTOS COMUNES" | string
   escalera: string
   planta: string
   puerta: string
-  ano_construccion: string
-  sup_total_inmueble: string
-  sup_suelo: string
-  coordenadas: string
-  coef_propiedad: string
-  uso_cat15: string
-  uso_principal: "VIVIENDA" | "ALMACEN" | "APARCAMIENTO" | "CCE" | "ELEMENTOS COMUNES" | string
-  superficie_m2: string
+  superficie_m2: number
   tipo_reforma: string
   fecha_reforma: string
-  tipo_elemento: "PRIVATIVO" | "ELEMENTOS COMUNES" | string
 }
 
-// Interfaz para datos agregados por edificio (ahora extraída del primer elemento)
+// Interfaz para datos agregados por edificio
 interface EdificioInfo {
   ref_catastral: string
-  nombre_municipio: string
-  nombre_provincia: string
-  cp: string
-  tipo_via: string
-  nombre_via: string
-  via_completa: string
-  numero: string
-  num_policia_1: string
-  ano_construccion: string
-  sup_suelo: string
-  bloque?: string
+  nombre_municipio?: string
+  nombre_provincia?: string
+  cp?: string
+  tipo_via?: string
+  nombre_via?: string
+  num_policia_1?: string
+  anyo_antiguedad_bien?: string
 }
 
 // Componente del mapa
@@ -242,8 +217,6 @@ export default function EdificioDetallePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [inmuebles, setInmuebles] = useState<InmuebleDetalle[]>([])
-  const [elementosComunes, setElementosComunes] = useState<InmuebleDetalle[]>([])
-  const [todosLosElementos, setTodosLosElementos] = useState<InmuebleDetalle[]>([])
   const [edificioInfo, setEdificioInfo] = useState<EdificioInfo | null>(null)
   const [selectedInmuebles, setSelectedInmuebles] = useState<Set<number>>(new Set())
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null)
@@ -290,15 +263,9 @@ export default function EdificioDetallePage() {
         console.log('🔍 DATOS COMPLETOS DEL NUEVO BACKEND:', data.data)
         console.log('🔍 PRIMER ELEMENTO COMPLETO:', data.data[0])
         
-        // Guardar todos los elementos
-        setTodosLosElementos(data.data)
-        
-        // Filtrar elementos privados y comunes por separado usando tipo_elemento
+        // Filtrar solo elementos privados (no comunes) para la lista de inmuebles
         const elementosPrivados = data.data.filter((item: InmuebleDetalle) => 
-          item.tipo_elemento === 'PRIVATIVO'
-        )
-        const elementosComu = data.data.filter((item: InmuebleDetalle) => 
-          item.tipo_elemento === 'ELEMENTOS COMUNES' || item.uso_principal === 'ELEMENTOS COMUNES'
+          item.uso_principal !== 'ELEMENTOS COMUNES'
         )
         
         // Crear información del edificio a partir del primer elemento
@@ -306,26 +273,23 @@ export default function EdificioDetallePage() {
           const primerElemento = data.data[0]
           setEdificioInfo({
             ref_catastral: primerElemento.ref_catastral,
-            nombre_municipio: primerElemento.nombre_municipio,
-            nombre_provincia: primerElemento.nombre_provincia,
-            cp: primerElemento.cp,
-            tipo_via: primerElemento.tipo_via,
-            nombre_via: primerElemento.nombre_via,
-            via_completa: primerElemento.via_completa,
-            numero: primerElemento.numero,
-            num_policia_1: primerElemento.num_policia_1,
-            ano_construccion: primerElemento.ano_construccion,
-            sup_suelo: primerElemento.sup_suelo,
-            bloque: primerElemento.bloque
+            // Estos datos vendrán de otra fuente o se obtendrán por separado
+            nombre_municipio: 'Por determinar',
+            nombre_provincia: 'Por determinar',
+            cp: 'N/A',
+            tipo_via: 'C/',
+            nombre_via: 'Por determinar',
+            num_policia_1: 'S/N',
+            anyo_antiguedad_bien: 'N/A'
           })
         }
         
         console.log('📋 ELEMENTOS PRIVADOS FILTRADOS:', elementosPrivados)
-        console.log('🏢 ELEMENTOS COMUNES:', elementosComu)
+        console.log('🏢 ELEMENTOS COMUNES:', data.data.filter((item: InmuebleDetalle) => 
+          item.uso_principal === 'ELEMENTOS COMUNES'
+        ))
         
         setInmuebles(elementosPrivados)
-        setElementosComunes(elementosComu)
-        
         // Seleccionar automáticamente todos los elementos privados al cargar
         const allIndices = new Set<number>()
         for (let i = 0; i < elementosPrivados.length; i++) {
@@ -333,8 +297,7 @@ export default function EdificioDetallePage() {
         }
         setSelectedInmuebles(allIndices)
         setLastSelectedIndex(elementosPrivados.length - 1)
-        console.log(`✅ Auto-seleccionados ${elementosPrivados.length} inmuebles privados`)
-        console.log(`ℹ️ Encontrados ${elementosComu.length} elementos comunes`)
+        console.log(`✅ Auto-seleccionados ${elementosPrivados.length} inmuebles por defecto`)
       } else if (Array.isArray(data)) {
         setInmuebles(data)
         // Seleccionar automáticamente todos los inmuebles al cargar
@@ -372,21 +335,13 @@ export default function EdificioDetallePage() {
 
   const formatearDireccion = (info: EdificioInfo | null) => {
     if (!info) return 'Dirección no disponible'
-    // Usar la vía completa si está disponible, sino construir la dirección
-    if (info.via_completa) {
-      return `${info.via_completa} ${info.numero || info.num_policia_1 || 'S/N'}`
-    }
-    const numero = info.numero || info.num_policia_1 || 'S/N'
+    const numero = info.num_policia_1 || 'S/N'
     return `${info.tipo_via || ''} ${info.nombre_via || ''} ${numero}`
   }
 
-  const obtenerTipoInmueble = (inmueble: InmuebleDetalle) => {
-    // Usar uso_principal como preferencia, uso_cat15 como respaldo
-    const tipo = inmueble.uso_principal || inmueble.uso_cat15 || 'OTRO'
-    
-    // Mapear los tipos de uso principal a colores e iconos
-    if (tipo.includes('VIVIENDA') || tipo === 'V') {
-      return { 
+  const obtenerTipoInmueble = (clave: string) => {
+    switch (clave) {
+      case 'V': return { 
         nombre: 'Vivienda', 
         color: 'bg-blue-50 text-blue-700 border-blue-200',
         icon: (
@@ -395,34 +350,7 @@ export default function EdificioDetallePage() {
           </svg>
         )
       }
-    }
-    
-    if (tipo.includes('ALMACEN') || tipo === 'A') {
-      return { 
-        nombre: 'Almacén', 
-        color: 'bg-orange-50 text-orange-700 border-orange-200',
-        icon: (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-        )
-      }
-    }
-    
-    if (tipo.includes('APARCAMIENTO') || tipo === 'P') {
-      return { 
-        nombre: 'Aparcamiento', 
-        color: 'bg-purple-50 text-purple-700 border-purple-200',
-        icon: (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1V4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        )
-      }
-    }
-    
-    if (tipo.includes('COMERCIAL') || tipo === 'C') {
-      return { 
+      case 'C': return { 
         nombre: 'Comercial', 
         color: 'bg-green-50 text-green-700 border-green-200',
         icon: (
@@ -431,29 +359,33 @@ export default function EdificioDetallePage() {
           </svg>
         )
       }
-    }
-    
-    if (tipo.includes('CCE') || tipo.includes('ELEMENTOS COMUNES')) {
-      return { 
-        nombre: 'Elementos Comunes', 
-        color: 'bg-gray-50 text-gray-700 border-gray-200',
+      case 'O': return { 
+        nombre: 'Oficina', 
+        color: 'bg-purple-50 text-purple-700 border-purple-200',
         icon: (
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8m8 0v2a2 2 0 01-2 2H10a2 2 0 01-2-2V6m8 0h2a2 2 0 012 2v6a2 2 0 01-2 2h-2" />
           </svg>
         )
       }
-    }
-    
-    // Tipo por defecto
-    return { 
-      nombre: tipo, 
-      color: 'bg-gray-50 text-gray-700 border-gray-200',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
+      case 'A': return { 
+        nombre: 'Almacén', 
+        color: 'bg-orange-50 text-orange-700 border-orange-200',
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        )
+      }
+      default: return { 
+        nombre: 'Otro', 
+        color: 'bg-gray-50 text-gray-700 border-gray-200',
+        icon: (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )
+      }
     }
   }
 
@@ -465,18 +397,26 @@ export default function EdificioDetallePage() {
       const sortedIndices = inmuebles
         .map((inmueble, idx) => ({ originalIndex: idx, ...inmueble }))
         .sort((a, b) => {
-          // Ordenamiento simplificado
+          // Mismo ordenamiento que en el render
+          const numA = a.num_policia_1 ? parseInt(a.num_policia_1) || 0 : 0
+          const numB = b.num_policia_1 ? parseInt(b.num_policia_1) || 0 : 0
+          if (numA !== numB) return numA - numB
+          
+          const plantaA = a.planta === 'BJ' ? -1 : (parseInt(a.planta) || 0)
+          const plantaB = b.planta === 'BJ' ? -1 : (parseInt(b.planta) || 0)
+          if (plantaA !== plantaB) return plantaA - plantaB
+          
+          const puertaA = a.puerta || ''
+          const puertaB = b.puerta || ''
+          if (puertaA !== puertaB) return puertaA.localeCompare(puertaB)
+          
           const escaleraA = parseInt(a.escalera || '0') || 0
           const escaleraB = parseInt(b.escalera || '0') || 0
           if (escaleraA !== escaleraB) return escaleraA - escaleraB
           
-          const plantaA = a.planta === 'BJ' ? -1 : (parseInt(a.planta) || 0)
-          const plantaB = b.planta === 'BJ' ? -1 : (parseInt(b.planta) || 0)
-          if (plantaA !== plantaB) return plantaB - plantaA
-          
-          const puertaA = a.puerta || ''
-          const puertaB = b.puerta || ''
-          return puertaA.localeCompare(puertaB)
+          const bloqueA = parseInt(a.bloque || '0') || 0
+          const bloqueB = parseInt(b.bloque || '0') || 0
+          return bloqueA - bloqueB
         })
         .map(item => item.originalIndex)
       
@@ -573,82 +513,44 @@ export default function EdificioDetallePage() {
           </div>
         )}
 
-        {/* Resultados - Inmuebles privados */}
+        {/* Resultados */}
         {!loading && !error && inmuebles.length > 0 && (
           <div className="space-y-6">
             
             {/* Información general del edificio */}
-            <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
-                <h2 className="text-xl font-semibold text-blue-900">
-                  🏢 {formatearDireccion(edificioInfo)}
-                </h2>
-                <p className="text-sm text-blue-700">
-                  {edificioInfo?.nombre_municipio}, {edificioInfo?.nombre_provincia} - CP: {edificioInfo?.cp}
-                  {edificioInfo?.bloque && ` - Bloque ${edificioInfo.bloque}`}
-                </p>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{inmuebles.length}</div>
-                    <div className="text-sm text-gray-600">Inmuebles privados</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inmuebles.reduce((sum, i) => sum + (parseFloat(i.superficie_m2) || 0), 0).toLocaleString()} m²
-                    </div>
-                    <div className="text-sm text-gray-600">Superficie privada</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{elementosComunes.length}</div>
-                    <div className="text-sm text-gray-600">Elementos comunes</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {edificioInfo?.ano_construccion || 'N/A'}
-                    </div>
-                    <div className="text-sm text-gray-600">Año construcción</div>
-                  </div>
+            {inmuebles.length > 0 && (
+              <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                  <h2 className="text-xl font-semibold text-blue-900">
+                    🏢 {formatearDireccion(edificioInfo)}
+                  </h2>
+                  <p className="text-sm text-blue-700">
+                    {edificioInfo?.nombre_municipio}, {edificioInfo?.nombre_provincia} - CP: {edificioInfo?.cp}
+                  </p>
                 </div>
                 
-                {/* Información adicional del edificio */}
-                {edificioInfo && (
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {parseFloat(edificioInfo.sup_suelo)?.toLocaleString() || 'N/A'} m²
-                      </div>
-                      <div className="text-xs text-gray-600">Superficie suelo</div>
+                      <div className="text-2xl font-bold text-gray-900">{inmuebles.length}</div>
+                      <div className="text-sm text-gray-600">Total de inmuebles</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {edificioInfo.cp}
+                      <div className="text-2xl font-bold text-gray-900">
+                        {inmuebles.reduce((sum, i) => sum + i.superficie_m2, 0).toLocaleString()} m²
                       </div>
-                      <div className="text-xs text-gray-600">Código Postal</div>
+                      <div className="text-sm text-gray-600">Superficie total</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {edificioInfo.ref_catastral}
+                      <div className="text-2xl font-bold text-gray-900">
+                        {edificioInfo?.anyo_antiguedad_bien || 'N/A'}
                       </div>
-                      <div className="text-xs text-gray-600">Ref. Catastral</div>
+                      <div className="text-sm text-gray-600">Año construcción</div>
                     </div>
                   </div>
-                )}
-                
-                {/* Información adicional sobre elementos comunes si existen */}
-                {elementosComunes.length > 0 && (
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="text-sm font-medium text-blue-900 mb-2">Elementos comunes adicionales</h4>
-                    <p className="text-sm text-blue-800">
-                      Se encontraron {elementosComunes.length} registros de elementos comunes con una superficie total de{' '}
-                      <strong>{elementosComunes.reduce((sum, i) => sum + (parseFloat(i.superficie_m2) || 0), 0).toLocaleString()} m²</strong>
-                    </p>
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Mapa de ubicación */}
             {inmuebles.length > 0 && edificioInfo && (
@@ -718,7 +620,7 @@ export default function EdificioDetallePage() {
                   return puertaA.localeCompare(puertaB)
                 })
                 .map((inmueble, index) => {
-                const tipo = obtenerTipoInmueble(inmueble)
+                const tipo = obtenerTipoInmueble(inmueble.uso_principal || '')
                 const isSelected = selectedInmuebles.has(inmueble.originalIndex)
                 
                 return (
@@ -757,7 +659,7 @@ export default function EdificioDetallePage() {
                             </div>
                           </div>
                           <p className="text-xs opacity-75 truncate">
-                            {parseFloat(inmueble.superficie_m2)?.toLocaleString() || 0} m²
+                            {inmueble.superficie_m2?.toLocaleString() || 0} m²
                           </p>
                         </div>
                       </div>
@@ -780,109 +682,19 @@ export default function EdificioDetallePage() {
           </div>
         )}
 
-        {/* No hay inmuebles privados, pero sí elementos comunes */}
-        {!loading && !error && inmuebles.length === 0 && elementosComunes.length > 0 && (
-          <div className="space-y-6">
-            {/* Información general del edificio con elementos comunes */}
-            <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-orange-50">
-                <h2 className="text-xl font-semibold text-orange-900">
-                  🏢 Edificio con elementos comunes únicamente
-                </h2>
-                <p className="text-sm text-orange-700">
-                  Referencia catastral: {refCatastral}
-                </p>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{elementosComunes.length}</div>
-                    <div className="text-sm text-gray-600">Registros de elementos comunes</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {elementosComunes.reduce((sum, i) => sum + (parseFloat(i.superficie_m2) || 0), 0).toLocaleString()} m²
-                    </div>
-                    <div className="text-sm text-gray-600">Superficie de elementos comunes</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {edificioInfo?.ano_construccion || 'N/A'}
-                    </div>
-                    <div className="text-sm text-gray-600">Año construcción</div>
-                  </div>
-                </div>
-                
-                <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="w-5 h-5 text-orange-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h4 className="text-sm font-medium text-orange-900">
-                        Información importante
-                      </h4>
-                      <div className="mt-2 text-sm text-orange-800">
-                        <p>Esta referencia catastral corresponde únicamente a <strong>elementos comunes</strong> del edificio.</p>
-                        <p className="mt-1">No se han encontrado inmuebles privados (viviendas, locales, etc.) asociados a esta referencia.</p>
-                        <p className="mt-2">Esto puede ocurrir cuando:</p>
-                        <ul className="mt-1 ml-4 list-disc">
-                          <li>La referencia corresponde solo a zonas comunes</li>
-                          <li>Los inmuebles privados tienen referencias catastrales diferentes</li>
-                          <li>El edificio está en proceso de actualización catastral</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detalles de elementos comunes */}
-                <div className="mt-6">
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Detalles de elementos comunes</h4>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">Superficie unitaria:</span>
-                        <span className="ml-2 text-gray-900">{parseFloat(elementosComunes[0]?.superficie_m2)?.toFixed(2) || 'N/A'} m²</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Tipo de uso:</span>
-                        <span className="ml-2 text-gray-900">{elementosComunes[0]?.uso_principal || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Número de registros:</span>
-                        <span className="ml-2 text-gray-900">{elementosComunes.length}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Superficie total:</span>
-                        <span className="ml-2 text-gray-900">
-                          {(parseFloat(elementosComunes[0]?.superficie_m2) * elementosComunes.length)?.toFixed(2) || 'N/A'} m²
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* No hay resultados en absoluto */}
-        {!loading && !error && inmuebles.length === 0 && elementosComunes.length === 0 && (
-          <div className="bg-white rounded-lg shadow-lg border border-red-200 p-8 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
-              <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* No hay resultados */}
+        {!loading && !error && inmuebles.length === 0 && (
+          <div className="bg-white rounded-lg shadow-lg border border-yellow-200 p-8 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-full mb-4">
+              <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-red-900 mb-2">
+            <h3 className="text-lg font-medium text-yellow-900 mb-2">
               No se encontraron datos
             </h3>
-            <p className="text-red-700">
-              No hay información catastral disponible para la referencia: {refCatastral}
+            <p className="text-yellow-700">
+              No hay información disponible para la referencia catastral: {refCatastral}
             </p>
           </div>
         )}

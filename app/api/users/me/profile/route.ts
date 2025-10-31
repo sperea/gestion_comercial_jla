@@ -108,9 +108,9 @@ async function forwardRequest(request: NextRequest, path: string) {
 }
 
 export async function GET(request: NextRequest) {
-  return forwardRequest(request, '/api/users/me/profile/')
+  return forwardRequest(request, '/user/me/profile/')
 }
 
 export async function PUT(request: NextRequest) {
-  return forwardRequest(request, '/api/users/me/profile/')
+  return forwardRequest(request, '/user/me/profile/')
 }

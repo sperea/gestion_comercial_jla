@@ -130,13 +130,13 @@ async function forwardRequest(request: NextRequest, path: string) {
 }
 
 export async function GET(request: NextRequest) {
-  return forwardRequest(request, '/api/users/me/profile/image/')
+  return forwardRequest(request, '/user/me/profile/image/')
 }
 
 export async function PUT(request: NextRequest) {
-  return forwardRequest(request, '/api/users/me/profile/image/')
+  return forwardRequest(request, '/user/me/profile/image/')
 }
 
 export async function DELETE(request: NextRequest) {
-  return forwardRequest(request, '/api/users/me/profile/image/')
+  return forwardRequest(request, '/user/me/profile/image/')
 }

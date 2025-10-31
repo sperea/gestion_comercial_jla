@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
         refresh: '/api/auth/refresh'
       },
       profile: {
-        get: '/api/users/me/profile/',
-        update: '/api/users/me/profile/',
-        image: '/api/users/me/profile/image/'
+        get: '/user/me/profile/',
+        update: '/user/me/profile/',
+        image: '/user/me/profile/image/'
       }
     },
     documentation: 'https://github.com/sperea/intranet_colaboradores_frontend#readme'

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     // Hacer petición al backend Django
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    const rolesUrl = `${backendUrl}/api/users/me/roles/`
+    const rolesUrl = `${backendUrl}/user/me/roles/`
     
     const response = await fetch(rolesUrl, {
       method: 'GET',

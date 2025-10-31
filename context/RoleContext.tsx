@@ -44,12 +44,15 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
       } else {
         setUserRoles(null)
         // Si el error es de autenticación, no mostramos mensaje (el usuario no está logueado)
-        if (response.error !== 'No autenticado') {
+        if (response.error !== 'No autenticado' && response.error !== 'Error al obtener roles') {
           console.warn('Error al obtener roles del usuario:', response.error)
         }
       }
     } catch (error) {
-      console.error('Error al cargar roles:', error)
+      // Solo mostrar errores si no son de autenticación
+      if (error instanceof Error && !error.message.includes('401') && !error.message.includes('No autenticado')) {
+        console.error('Error al cargar roles:', error)
+      }
       setUserRoles(null)
     } finally {
       setLoading(false)
