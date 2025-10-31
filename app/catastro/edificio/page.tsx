@@ -372,12 +372,24 @@ export default function EdificioDetallePage() {
 
   const formatearDireccion = (info: EdificioInfo | null) => {
     if (!info) return 'Dirección no disponible'
+    
+    let direccion = ''
+    let numero = info.numero || info.num_policia_1 || 'S/N'
+    
     // Usar la vía completa si está disponible, sino construir la dirección
     if (info.via_completa) {
-      return `${info.via_completa} ${info.numero || info.num_policia_1 || 'S/N'}`
+      direccion = info.via_completa
+    } else {
+      direccion = `${info.tipo_via || ''} ${info.nombre_via || ''}`.trim()
     }
-    const numero = info.numero || info.num_policia_1 || 'S/N'
-    return `${info.tipo_via || ''} ${info.nombre_via || ''} ${numero}`
+    
+    // Formatear el número eliminando ceros a la izquierda
+    if (numero && numero !== 'S/N') {
+      const numeroLimpio = parseInt(numero).toString()
+      return `${direccion} ${numeroLimpio}`
+    }
+    
+    return `${direccion} ${numero}`
   }
 
   const obtenerTipoInmueble = (inmueble: InmuebleDetalle) => {
@@ -415,7 +427,9 @@ export default function EdificioDetallePage() {
         color: 'bg-purple-50 text-purple-700 border-purple-200',
         icon: (
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1V4a1 1 0 00-1 1v3M4 7h16" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 6H4L2 4h14l2 2-1 11H4l-1-11z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 11h16M6 6v5M18 6v5" />
           </svg>
         )
       }
@@ -518,6 +532,35 @@ export default function EdificioDetallePage() {
     setLastSelectedIndex(null)
   }
 
+  // Función para obtener estadísticas agrupadas por tipo de los inmuebles seleccionados
+  const getSelectedStats = () => {
+    if (selectedInmuebles.size === 0) return null
+
+    const stats: Record<string, { count: number; superficie: number; color: string; icon: JSX.Element }> = {}
+    
+    Array.from(selectedInmuebles).forEach(index => {
+      const inmueble = inmuebles[index]
+      if (!inmueble) return
+      
+      const tipo = obtenerTipoInmueble(inmueble)
+      const superficie = parseFloat(inmueble.superficie_m2) || 0
+      
+      if (!stats[tipo.nombre]) {
+        stats[tipo.nombre] = {
+          count: 0,
+          superficie: 0,
+          color: tipo.color,
+          icon: tipo.icon
+        }
+      }
+      
+      stats[tipo.nombre].count++
+      stats[tipo.nombre].superficie += superficie
+    })
+    
+    return stats
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -579,74 +622,52 @@ export default function EdificioDetallePage() {
             
             {/* Información general del edificio */}
             <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
-                <h2 className="text-xl font-semibold text-blue-900">
-                  🏢 {formatearDireccion(edificioInfo)}
-                </h2>
-                <p className="text-sm text-blue-700">
-                  {edificioInfo?.nombre_municipio}, {edificioInfo?.nombre_provincia} - CP: {edificioInfo?.cp}
-                  {edificioInfo?.bloque && ` - Bloque ${edificioInfo.bloque}`}
-                </p>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{inmuebles.length}</div>
-                    <div className="text-sm text-gray-600">Inmuebles privados</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {inmuebles.reduce((sum, i) => sum + (parseFloat(i.superficie_m2) || 0), 0).toLocaleString()} m²
-                    </div>
-                    <div className="text-sm text-gray-600">Superficie privada</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">{elementosComunes.length}</div>
-                    <div className="text-sm text-gray-600">Elementos comunes</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {edificioInfo?.ano_construccion || 'N/A'}
-                    </div>
-                    <div className="text-sm text-gray-600">Año construcción</div>
-                  </div>
-                </div>
-                
-                {/* Información adicional del edificio */}
-                {edificioInfo && (
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {parseFloat(edificioInfo.sup_suelo)?.toLocaleString() || 'N/A'} m²
-                      </div>
-                      <div className="text-xs text-gray-600">Superficie suelo</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {edificioInfo.cp}
-                      </div>
-                      <div className="text-xs text-gray-600">Código Postal</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {edificioInfo.ref_catastral}
-                      </div>
-                      <div className="text-xs text-gray-600">Ref. Catastral</div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Información adicional sobre elementos comunes si existen */}
-                {elementosComunes.length > 0 && (
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="text-sm font-medium text-blue-900 mb-2">Elementos comunes adicionales</h4>
-                    <p className="text-sm text-blue-800">
-                      Se encontraron {elementosComunes.length} registros de elementos comunes con una superficie total de{' '}
-                      <strong>{elementosComunes.reduce((sum, i) => sum + (parseFloat(i.superficie_m2) || 0), 0).toLocaleString()} m²</strong>
+              <div className="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <h2 className="text-lg font-semibold text-blue-900">
+                      🏢 {formatearDireccion(edificioInfo)}
+                    </h2>
+                    <p className="text-xs text-blue-700">
+                      {edificioInfo?.nombre_municipio}, {edificioInfo?.nombre_provincia} - CP: {edificioInfo?.cp}
                     </p>
                   </div>
-                )}
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-900">
+                      {edificioInfo?.ano_construccion || 'N/A'}
+                    </div>
+                    <div className="text-xs text-blue-600">
+                      Año construcción
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4">
+                {/* Estadísticas principales en dos filas compactas */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-xl font-bold text-gray-900">{inmuebles.length}</div>
+                    <div className="text-xs text-gray-600">Privados</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-xl font-bold text-gray-900">
+                      {inmuebles.reduce((sum, i) => sum + (parseFloat(i.superficie_m2) || 0), 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-gray-600">m² Privados</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-xl font-bold text-gray-900">{elementosComunes.length}</div>
+                    <div className="text-xs text-gray-600">Comunes</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="text-xl font-bold text-gray-900">
+                      {elementosComunes.reduce((sum, i) => sum + (parseFloat(i.superficie_m2) || 0), 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-gray-600">m² Comunes</div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -659,122 +680,228 @@ export default function EdificioDetallePage() {
               />
             )}
 
-            {/* Controles de selección */}
-            <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+            {/* Controles de selección y filtros */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 002 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2z" />
+                    </svg>
                     Inmuebles del Edificio ({inmuebles.length})
                   </h3>
-                  <p className="text-sm text-gray-600">
-                    {selectedInmuebles.size > 0 
-                      ? `${selectedInmuebles.size} inmueble${selectedInmuebles.size > 1 ? 's' : ''} seleccionado${selectedInmuebles.size > 1 ? 's' : ''}`
-                      : 'Selecciona los inmuebles que deseas consultar'
-                    }
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    💡 <span className="font-medium">Tip:</span> Mantén presionada la tecla <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs font-mono">Shift</kbd> para seleccionar múltiples inmuebles de una vez
-                  </p>
+                  
+                  {/* Estadísticas por tipo cuando hay selección */}
+                  {selectedInmuebles.size > 0 && (() => {
+                    const stats = getSelectedStats()
+                    return stats ? (
+                      <div className="mt-3">
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(stats).map(([tipo, data]) => (
+                            <div 
+                              key={tipo}
+                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${data.color}`}
+                            >
+                              <div className="w-3 h-3 flex-shrink-0">
+                                {data.icon}
+                              </div>
+                              <span>
+                                {data.count} {tipo}{data.count > 1 ? 's' : ''}
+                              </span>
+                              <span className="text-xs opacity-75">
+                                ({data.superficie.toLocaleString()} m²)
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Total seleccionado: {selectedInmuebles.size} inmuebles • {Array.from(selectedInmuebles)
+                            .reduce((sum, index) => sum + (parseFloat(inmuebles[index]?.superficie_m2) || 0), 0)
+                            .toLocaleString()} m²
+                        </p>
+                      </div>
+                    ) : null
+                  })()}
+                  
+                  {/* Información cuando no hay selección */}
+                  {selectedInmuebles.size === 0 && (
+                    <div className="flex flex-wrap items-center gap-4 mt-2">
+                      <p className="text-sm text-gray-600">
+                        Haz clic en las filas para seleccionar inmuebles
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">Click</kbd>
+                        <span>Selección individual</span>
+                        <kbd className="px-2 py-1 bg-gray-100 rounded font-mono">Shift+Click</kbd>
+                        <span>Selección múltiple</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={selectAllInmuebles}
-                    className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700"
+                    className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
                   >
-                    Seleccionar todos
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Todos
                   </Button>
                   {selectedInmuebles.size > 0 && (
                     <Button
                       onClick={clearSelection}
-                      className="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-700"
+                      className="px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 flex items-center gap-2"
                     >
-                      Limpiar selección
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Limpiar
                     </Button>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Lista de inmuebles */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {inmuebles
-                .map((inmueble, originalIndex) => ({ ...inmueble, originalIndex }))
-                .sort((a, b) => {
-                  // Ordenar por: número, planta, letra, escalera
-                  
-                  // 1. Por escalera
-                  const escaleraA = parseInt(a.escalera || '0') || 0
-                  const escaleraB = parseInt(b.escalera || '0') || 0
-                  if (escaleraA !== escaleraB) return escaleraA - escaleraB
-                  
-                  // 2. Por planta
-                  const plantaA = a.planta === 'BJ' ? -1 : (parseInt(a.planta) || 0)
-                  const plantaB = b.planta === 'BJ' ? -1 : (parseInt(b.planta) || 0)
-                  if (plantaA !== plantaB) return plantaB - plantaA // Orden descendente para planta
-                  
-                  // 3. Por puerta
-                  const puertaA = a.puerta || ''
-                  const puertaB = b.puerta || ''
-                  return puertaA.localeCompare(puertaB)
-                })
-                .map((inmueble, index) => {
-                const tipo = obtenerTipoInmueble(inmueble)
-                const isSelected = selectedInmuebles.has(inmueble.originalIndex)
-                
-                return (
-                  <div
-                    key={inmueble.originalIndex}
-                    className={`relative rounded-lg border-2 transition-all duration-200 cursor-pointer select-none transform hover:scale-105 ${
-                      isSelected 
-                        ? 'bg-blue-100 border-blue-500 shadow-lg ring-2 ring-blue-300 scale-105' 
-                        : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md'
-                    }`}
-                    onClick={(e) => toggleInmuebleSelection(inmueble.originalIndex, e.shiftKey)}
-                  >
-
-                    {/* Indicador de selección en esquina */}
-                    {isSelected && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-sm"></div>
-                    )}
-
-                    <div className="p-3">
-                      {/* Header compacto con icono, tipo y número */}
-                      <div className={`flex items-center gap-2 mb-2 p-2 rounded transition-all duration-200 ${
-                        isSelected 
-                          ? tipo.color.replace('50', '200').replace('100', '300') // Colores más intensos cuando está seleccionado
-                          : tipo.color
-                      }`}>
-                        <div className="flex-shrink-0">
-                          <div className="w-5 h-5">{tipo.icon}</div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-xs truncate">{tipo.nombre}</h4>
-                            <div className="flex items-center ml-2">
-                              <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                                E{inmueble.escalera || 'N/A'}
+            {/* Tabla compacta de inmuebles */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto" style={{ minWidth: '800px' }}>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          checked={selectedInmuebles.size === inmuebles.length && inmuebles.length > 0}
+                          onChange={(e) => e.target.checked ? selectAllInmuebles() : clearSelection()}
+                          className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-1"
+                        />
+                      </th>
+                      <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tipo
+                      </th>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Esc
+                      </th>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Planta
+                      </th>
+                      <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Puerta
+                      </th>
+                      <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        m²
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {inmuebles
+                      .map((inmueble, originalIndex) => ({ ...inmueble, originalIndex }))
+                      .sort((a, b) => {
+                        // Ordenar por: escalera, planta (desc), puerta
+                        const escaleraA = parseInt(a.escalera || '0') || 0
+                        const escaleraB = parseInt(b.escalera || '0') || 0
+                        if (escaleraA !== escaleraB) return escaleraA - escaleraB
+                        
+                        const plantaA = a.planta === 'BJ' ? -1 : (parseInt(a.planta) || 0)
+                        const plantaB = b.planta === 'BJ' ? -1 : (parseInt(b.planta) || 0)
+                        if (plantaA !== plantaB) return plantaB - plantaA
+                        
+                        const puertaA = a.puerta || ''
+                        const puertaB = b.puerta || ''
+                        return puertaA.localeCompare(puertaB)
+                      })
+                      .map((inmueble, index) => {
+                        const tipo = obtenerTipoInmueble(inmueble)
+                        const isSelected = selectedInmuebles.has(inmueble.originalIndex)
+                        
+                        return (
+                          <tr
+                            key={inmueble.originalIndex}
+                            className={`cursor-pointer transition-colors duration-150 hover:bg-gray-50 ${
+                              isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                            }`}
+                            onClick={(e) => toggleInmuebleSelection(inmueble.originalIndex, e.shiftKey)}
+                          >
+                            {/* Checkbox */}
+                            <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {}} // Manejado por el onClick del tr
+                                className="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-1"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </td>
+                            
+                            {/* Tipo con icono y color */}
+                            <td className="px-2 py-1.5 whitespace-nowrap">
+                              <div className={`inline-flex items-center gap-2 px-2 py-0.5 rounded-full text-xs font-medium ${tipo.color}`}>
+                                <div className="w-3 h-3 flex-shrink-0">
+                                  {tipo.icon}
+                                </div>
+                                <span className="truncate" title={tipo.nombre}>
+                                  {tipo.nombre}
+                                </span>
+                              </div>
+                            </td>
+                            
+                            {/* Escalera */}
+                            <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                              <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
+                                {inmueble.escalera || '-'}
                               </span>
-                            </div>
-                          </div>
-                          <p className="text-xs opacity-75 truncate">
-                            {parseFloat(inmueble.superficie_m2)?.toLocaleString() || 0} m²
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Ubicación ultra-compacta con iconos representativos */}
-                      <div className="flex flex-wrap gap-1 text-xs">
-                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 flex items-center gap-1" title="Planta">
-                          <span className="text-xs">⬆</span>{inmueble.planta === 'BJ' ? 'B' : inmueble.planta || 'N/A'}
-                        </span>
-                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600" title="Letra/Puerta">
-                          {inmueble.puerta || 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+                            </td>
+                            
+                            {/* Planta */}
+                            <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                                inmueble.planta === 'BJ' 
+                                  ? 'bg-orange-100 text-orange-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {inmueble.planta === 'BJ' ? 'B' : inmueble.planta || '-'}
+                              </span>
+                            </td>
+                            
+                            {/* Puerta */}
+                            <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                              <span className="inline-flex items-center justify-center w-6 h-6 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                                {inmueble.puerta || '-'}
+                              </span>
+                            </td>
+                            
+                            {/* Superficie */}
+                            <td className="px-2 py-1.5 whitespace-nowrap text-right">
+                              <span className="text-sm font-semibold text-gray-900">
+                                {parseFloat(inmueble.superficie_m2)?.toLocaleString() || 0}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Footer con estadísticas */}
+              <div className="bg-gray-50 px-3 py-2 border-t border-gray-200">
+                <div className="flex items-center justify-between text-xs text-gray-600">
+                  <span>
+                    {selectedInmuebles.size > 0 
+                      ? `${selectedInmuebles.size}/${inmuebles.length} seleccionados`
+                      : `${inmuebles.length} inmuebles`
+                    }
+                  </span>
+                  {selectedInmuebles.size > 0 && (
+                    <span className="font-medium">
+                      {Array.from(selectedInmuebles)
+                        .reduce((sum, index) => sum + (parseFloat(inmuebles[index]?.superficie_m2) || 0), 0)
+                        .toLocaleString()} m²
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
 
           </div>
