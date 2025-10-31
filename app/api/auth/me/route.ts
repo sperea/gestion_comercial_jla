@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     if (accessToken) {
       console.log('🔑 Verificando con access token...')
       try {
-        const meUrl = `${backendUrl}/api/users/me/`
+        const meUrl = `${backendUrl}/user/user-info/`
         const response = await fetch(meUrl, {
           method: 'GET',
           headers: {
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     if (refreshToken) {
       console.log('🔄 Intentando renovar con refresh token...')
       try {
-        const refreshResponse = await fetch(`${backendUrl}/api/auth/refresh/`, {
+        const refreshResponse = await fetch(`${backendUrl}/api/token/refresh/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
           console.log('✅ Token renovado exitosamente')
           
           // Ahora verificar usuario con el nuevo token
-          const meUrl = `${backendUrl}/api/users/me/`
+          const meUrl = `${backendUrl}/user/user-info/`
           const userResponse = await fetch(meUrl, {
             method: 'GET',
             headers: {

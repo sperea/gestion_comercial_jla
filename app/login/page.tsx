@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Checkbox } from "@/components/ui/Checkbox";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,8 +38,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      console.log('🔐 Iniciando login con:', { email, rememberMe });
-      const success = await login({ email, password, rememberMe });
+      console.log('🔐 Iniciando login con:', { username, rememberMe });
+      const success = await login({ email: username, password, rememberMe });
       console.log('✅ Resultado del login:', { success });
       
       if (success) {
@@ -105,13 +105,13 @@ export default function LoginPage() {
           <form className="space-y-8" onSubmit={handleSubmit}>
             <div>
               <Input
-                label="Correo Electrónico"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                label="Nombre de Usuario"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                placeholder="tu@empresa.com"
-                autoComplete="email"
+                placeholder="tu_usuario"
+                autoComplete="username"
                 className="text-lg p-3"
               />
             </div>
@@ -154,7 +154,7 @@ export default function LoginPage() {
                 type="submit"
                 loading={loading}
                 className="w-full py-4 text-lg font-semibold"
-                disabled={!email || !password}
+                disabled={!username || !password}
               >
                 {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
@@ -167,9 +167,9 @@ export default function LoginPage() {
               Credenciales de demo:
             </h4>
             <p className="text-xs text-gray-600">
-              <strong>Email:</strong> admin@example.com
+              <strong>Usuario:</strong> sergio
               <br />
-              <strong>Contraseña:</strong> password123
+              <strong>Contraseña:</strong> ynmmspmn123
             </p>
           </div>
         </Card>

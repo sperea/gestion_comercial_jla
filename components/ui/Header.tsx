@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { profileAPI } from '@/lib/api'
 
@@ -81,7 +82,7 @@ export default function Header() {
           {/* Logo y marca */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <a href="/">
+              <Link href="/">
               <Image
                 src="/img/logo.webp"
                 alt="JLA Asociados"
@@ -89,24 +90,15 @@ export default function Header() {
                 height={50}
                 className="object-contain"
               />
-              </a>
+              </Link>
             </div>
           </div>
             
           {/* Navegación desktop centrada */}
           <nav className="hidden md:flex md:justify-center md:space-x-8 flex-1">
-            <a href="#" className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors">
-              Mis Proyectos
-            </a>
-            <a href="#" className="text-gray-500 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
-              Tarificadores
-            </a>
-            <a href="#" className="text-gray-500 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
-              Mi Formación
-            </a>
-            <a href="#" className="text-gray-500 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition-colors">
-              Soporte
-            </a>
+            <Link href="/catastro" className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              Catastro
+            </Link>
           </nav>
 
           {/* Acciones del usuario */}
@@ -221,18 +213,9 @@ export default function Header() {
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-200 bg-gray-50">
-            <a href="#" className="text-gray-900 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
-              Mis Proyectos
-            </a>
-            <a href="#" className="text-gray-500 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-              Tarificadores
-            </a>
-            <a href="#" className="text-gray-500 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-              Mi Formación
-            </a>
-            <a href="#" className="text-gray-500 hover:text-gray-900 block px-3 py-2 rounded-md text-base font-medium">
-              Soporte
-            </a>
+            <Link href="/catastro" className="text-gray-900 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
+              Catastro
+            </Link>
           </div>
         </div>
       )}

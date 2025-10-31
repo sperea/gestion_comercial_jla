@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Verificar si hay una sesión activa al cargar
   useEffect(() => {
     checkAuthStatus()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkAuthStatus = async () => {
     try {
@@ -48,9 +48,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authAPI.me()
       if (response.success && response.data) {
         console.log('🔍 AuthContext - Datos completos del usuario:', response.data)
+        setUser(response.data)
         
         // Llamar a refreshUserData inmediatamente para obtener la imagen de perfil
-        await refreshUserData()
+        try {
+          await refreshUserData()
+        } catch (error) {
+          console.log('⚠️ No se pudieron cargar datos completos del perfil después de checkAuthStatus:', error)
+        }
       } else {
         setUser(null)
         // Si no hay sesión activa y no está marcado "recordarme", limpiar localStorage
@@ -87,11 +92,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         // Obtener datos completos del perfil (incluyendo imagen) después del login
-        try {
-          await refreshUserData()
-        } catch (error) {
-          console.log('⚠️ No se pudieron cargar datos completos del perfil, pero login exitoso:', error)
-        }
+        // Usar setTimeout para evitar conflictos de estado inmediatos
+        setTimeout(async () => {
+          try {
+            await refreshUserData()
+          } catch (error) {
+            console.log('⚠️ No se pudieron cargar datos completos del perfil, pero login exitoso:', error)
+          }
+        }, 100)
         
         // El toast de success automáticamente limpiará el de loading
         addToast({ type: 'success', message: 'Sesión iniciada exitosamente' })

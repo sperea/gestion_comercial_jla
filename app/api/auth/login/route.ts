@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
 
     // Hacer la petición al backend Django real
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    const loginUrl = `${backendUrl}/api/auth/login/`
+    const loginUrl = `${backendUrl}/api/token/`
     
-    console.log('🔑 Login request con rememberMe:', { email, rememberMe })
+    console.log('🔑 Login request con rememberMe:', { email, password: '***', rememberMe })
     
     const response = await fetch(loginUrl, {
       method: 'POST',
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ username: email, password })
     })
 
     if (!response.ok) {
@@ -44,19 +44,57 @@ export async function POST(req: NextRequest) {
       }, { status: response.status })
     }
 
-    const data = await response.json()
+    const tokens = await response.json()
     
-    console.log('🔍 Respuesta completa de Django:', data)
-    console.log('👤 Usuario en respuesta de Django:', data.user)
+    console.log('🔍 Tokens recibidos de JLA API:', { access: '***', refresh: '***' })
+    
+    // Obtener información del usuario usando el access token
+    let userData = null
+    try {
+      const userResponse = await fetch(`${backendUrl}/user/user-info/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${tokens.access}`,
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      if (userResponse.ok) {
+        userData = await userResponse.json()
+        console.log('👤 Datos del usuario obtenidos:', userData)
+      } else {
+        console.warn('⚠️ No se pudieron obtener los datos del usuario')
+        // Crear datos básicos del usuario si no se pueden obtener
+        userData = {
+          id: 1,
+          username: email,
+          email: email,
+          first_name: '',
+          last_name: '',
+          is_active: true
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error obteniendo datos del usuario:', error)
+      // Crear datos básicos del usuario en caso de error
+      userData = {
+        id: 1,
+        username: email,
+        email: email,
+        first_name: '',
+        last_name: '',
+        is_active: true
+      }
+    }
     
     // Crear la respuesta con la estructura esperada por el frontend
     const responseData = {
       success: true,
       data: {
-        user: data.user,
+        user: userData,
         tokens: {
-          access: data.access,
-          refresh: data.refresh
+          access: tokens.access,
+          refresh: tokens.refresh
         }
       },
       message: 'Login exitoso'
@@ -70,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     // Establecer cookies HTTP-Only para ambos tokens
     // Access token - duración corta (30 minutos para JWT)
-    nextResponse.cookies.set('access-token', data.access, {
+    nextResponse.cookies.set('access-token', tokens.access, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -79,7 +117,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Refresh token - duración ajustable según "Recordarme"
-    nextResponse.cookies.set('refresh-token', data.refresh, {
+    nextResponse.cookies.set('refresh-token', tokens.refresh, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

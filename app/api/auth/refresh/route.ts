@@ -13,9 +13,9 @@ export async function POST(req: NextRequest) {
       }, { status: 401 })
     }
 
-    // Hacer petición al backend Django para renovar el token
+    // Hacer petición al backend JLA Asociados para renovar el token
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    const refreshUrl = `${backendUrl}/api/auth/refresh/`
+    const refreshUrl = `${backendUrl}/api/token/refresh/`
     
     console.log('🔄 Renovando token con backend Django...')
     

@@ -47,7 +47,9 @@
     "test:setup": "echo '🧪 Para ejecutar tests Python:' && echo '  npm run test:python  # Todos los tests' && echo '  npm run test:auth    # Solo autenticación' && echo '  npm run test:profile # Solo perfil' && echo '' && echo '📋 Prerrequisitos:' && echo '  pip install requests' && echo '  npm run dev          # Servidor corriendo'"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.21",
     "js-cookie": "^3.0.5",
+    "leaflet": "^1.9.4",
     "next": "^15.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
