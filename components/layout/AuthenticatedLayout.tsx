@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { FullPageLoader } from '@/components/ui/LoadingSpinner'
+import Header from '@/components/ui/Header'
 import Footer from '@/components/ui/Footer'
 
 interface AuthenticatedLayoutProps {
@@ -30,6 +31,7 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Header />
       <div className="flex-1">
         {children}
       </div>
