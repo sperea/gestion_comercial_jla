@@ -806,3 +806,25 @@ Proyecto de demostración para implementación de sistemas de autenticación emp
 ---
 
 **Desarrollado con ❤️ usando Next.js, TypeScript y Tailwind CSS**
+
+## TODO: Refactorización API (resumen)
+
+Este proyecto ha sido refactorizado para centralizar todas las llamadas al backend usando la variable de entorno `NEXT_PUBLIC_API_URL`.
+
+Estado actual (resumen):
+
+- [x] Crear módulo centralizado de configuración API (`lib/api-config.ts`)
+- [x] Refactorizar `lib/api.ts` para usar `api-config`
+- [x] Refactorizar rutas de autenticación (`app/api/auth/*`)
+- [x] Refactorizar rutas de usuario (`app/api/users/*`)
+- [x] Refactorizar rutas de catastro (`app/api/catastro/*`)
+- [x] Validar y probar flujo de autenticación (servidor dev)
+- [ ] Validar y probar endpoints de catastro (pruebas funcionales pendientes)
+
+Notas:
+
+- El módulo centralizado está en `lib/api-config.ts` y exporta `buildUrl`, `getBackendUrl` y `API_ENDPOINTS`.
+- Las rutas proxy en `app/api/*` han sido actualizadas para usar `buildUrl(API_ENDPOINTS.xxx)` en lugar de fallbacks hardcodeados.
+- Antes de desplegar en producción asegúrate de que `NEXT_PUBLIC_API_URL` esté configurada en el entorno.
+
+Si prefieres, puedo encargarme de ejecutar las pruebas funcionales restantes (calles, inmuebles y detalle de edificio) y documentar los resultados aquí.
