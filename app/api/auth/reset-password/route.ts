@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 /**
  * Endpoint para restablecer la contraseña
@@ -54,8 +55,8 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Llamar al backend Django
-    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/password-reset/confirm/`
+    // Llamar al backend Django usando configuración centralizada
+    const djangoUrl = buildUrl(API_ENDPOINTS.auth.resetPassword)
     
     console.log(`🔐 Restableciendo contraseña con token`)
 

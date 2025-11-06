@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 // Proxy para obtener roles del usuario desde el backend Django
 export async function GET(req: NextRequest) {
@@ -13,9 +14,8 @@ export async function GET(req: NextRequest) {
       }, { status: 401 })
     }
 
-    // Hacer petición al backend Django
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    const rolesUrl = `${backendUrl}/user/me/roles/`
+    // Hacer petición al backend Django usando configuración centralizada
+    const rolesUrl = buildUrl(API_ENDPOINTS.user.roles)
     
     const response = await fetch(rolesUrl, {
       method: 'GET',

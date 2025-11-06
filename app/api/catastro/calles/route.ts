@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,9 +24,8 @@ export async function GET(req: NextRequest) {
       }, { status: 401 })
     }
 
-    // Hacer la llamada al backend de JLA Asociados
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.jlaasociados.net'
-    const catastroUrl = `${backendUrl}/catastro/calles/?q=${encodeURIComponent(query.trim())}`
+    // Hacer la llamada al backend usando configuración centralizada
+    const catastroUrl = buildUrl(API_ENDPOINTS.catastro.calles, { q: query.trim() })
     
     console.log('🏠 Buscando calles en:', catastroUrl)
     

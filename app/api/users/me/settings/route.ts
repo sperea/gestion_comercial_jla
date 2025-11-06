@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import config from '@/lib/config'
-
-const API_BASE_URL = config.apiUrl
+import { buildUrl } from '@/lib/api-config'
 
 async function forwardRequest(request: NextRequest, path: string) {
   try {
@@ -34,8 +32,8 @@ async function forwardRequest(request: NextRequest, path: string) {
     
     console.log(`🍪 Cookies being forwarded:`, cookies ? 'Present' : 'None')
 
-    // Configurar la request al backend
-    const backendUrl = `${API_BASE_URL}${path}`
+    // Configurar la request al backend usando configuración centralizada
+    const backendUrl = buildUrl(path)
     const requestOptions: RequestInit = {
       method: request.method,
       headers,

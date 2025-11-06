@@ -1,30 +1,6 @@
 import config from './config'
+import { buildUrl, API_ENDPOINTS } from './api-config'
 import type { UserRoles } from './types/roles'
-
-// Configuración de la API
-const API_BASE_URL = config.apiUrl
-
-// Función para obtener la URL completa de la API
-const getApiUrl = (endpoint: string): string => {
-  // Si el endpoint ya es una URL completa, usarla tal como está
-  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
-    return endpoint
-  }
-  
-  // Si el endpoint comienza con /api/, es un endpoint del frontend Next.js
-  // No agregar el API_BASE_URL, usar la URL relativa
-  if (endpoint.startsWith('/api/')) {
-    return endpoint
-  }
-  
-  // Para otros endpoints, usar el API_BASE_URL del backend
-  if (API_BASE_URL.startsWith('http://') || API_BASE_URL.startsWith('https://')) {
-    return `${API_BASE_URL.replace(/\/$/, '')}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
-  }
-  
-  // Si API_BASE_URL es una ruta relativa, concatenar normalmente
-  return `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`
-}
 
 export interface LoginCredentials {
   email: string
@@ -354,7 +330,7 @@ export const authAPI = {
   // Obtener roles del usuario actual
   async getUserRoles(): Promise<ApiResponse<UserRoles>> {
     try {
-      const response = await fetchWithCredentials('/user/me/roles/')
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.roles))
 
       if (response.status === 401) {
         return { success: false, error: 'No autenticado' }
@@ -387,7 +363,7 @@ export const profileAPI = {
   async getProfile(): Promise<ApiResponse<User>> {
     try {
       // Usar endpoint real del backend Django
-      const response = await fetchWithCredentials('/user/me/profile/')
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.profile))
 
       if (response.status === 401) {
         return { success: false, error: 'No autenticado' }
@@ -419,7 +395,7 @@ export const profileAPI = {
   async updateProfile(profileData: Partial<Pick<User, 'first_name' | 'last_name' | 'email' | 'phone'>>): Promise<ApiResponse<User>> {
     try {
       // Usar endpoint real del backend Django
-      const response = await fetchWithCredentials('/user/me/profile/', {
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.profile), {
         method: 'PUT',
         body: JSON.stringify(profileData),
       })
@@ -466,7 +442,7 @@ export const profileAPI = {
   // Obtener solo la imagen de perfil
   async getProfileImage(): Promise<ApiResponse<{ image_url: string | null; has_image: boolean }>> {
     try {
-      const response = await fetchWithCredentials('/user/me/profile/image/')
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.profileImage))
 
       if (response.status === 401) {
         return { success: false, error: 'No autenticado' }
@@ -509,7 +485,7 @@ export const profileAPI = {
       formData.append('image', imageFile)
 
       // Para FormData, no establecer Content-Type headers manualmente - usar fetchWithCredentials
-      const response = await fetchWithCredentials('/user/me/profile/image/', {
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.profileImage), {
         method: 'PUT',
         body: formData,
       })
@@ -557,7 +533,7 @@ export const profileAPI = {
     // Eliminar imagen de perfil
   async deleteProfileImage(): Promise<ApiResponse<{ message: string }>> {
     try {
-      const response = await fetchWithCredentials('/user/me/profile/image/', {
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.profileImage), {
         method: 'DELETE',
       })
 
@@ -598,7 +574,7 @@ export const profileAPI = {
   // Obtener configuración del usuario
   async getUserSettings(): Promise<ApiResponse<{ count: number; results: UserSettings[] }>> {
     try {
-      const response = await fetchWithCredentials('/user/me/settings/')
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.settings))
 
       if (response.status === 401) {
         return { success: false, error: 'No autenticado' }
@@ -629,7 +605,7 @@ export const profileAPI = {
   // Actualizar configuración del usuario
   async updateUserSettings(settingsData: Partial<UserSettingsUpdate>): Promise<ApiResponse<UserSettings>> {
     try {
-      const response = await fetchWithCredentials('/user/me/settings/', {
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.settings), {
         method: 'POST',
         body: JSON.stringify(settingsData),
       })

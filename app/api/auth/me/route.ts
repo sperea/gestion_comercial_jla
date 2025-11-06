@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,7 +8,6 @@ export async function GET(req: NextRequest) {
     // Obtener tokens de las cookies
     const accessToken = req.cookies.get('access-token')?.value
     const refreshToken = req.cookies.get('refresh-token')?.value
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
     
     console.log('🍪 Cookies encontradas:', { 
       hasAccessToken: !!accessToken, 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     if (accessToken) {
       console.log('🔑 Verificando con access token...')
       try {
-        const meUrl = `${backendUrl}/user/user-info/`
+        const meUrl = buildUrl(API_ENDPOINTS.auth.userInfo)
         const response = await fetch(meUrl, {
           method: 'GET',
           headers: {
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     if (refreshToken) {
       console.log('🔄 Intentando renovar con refresh token...')
       try {
-        const refreshResponse = await fetch(`${backendUrl}/api/token/refresh/`, {
+        const refreshResponse = await fetch(buildUrl(API_ENDPOINTS.auth.refresh), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
           console.log('✅ Token renovado exitosamente')
           
           // Ahora verificar usuario con el nuevo token
-          const meUrl = `${backendUrl}/user/user-info/`
+          const meUrl = buildUrl(API_ENDPOINTS.auth.userInfo)
           const userResponse = await fetch(meUrl, {
             method: 'GET',
             headers: {

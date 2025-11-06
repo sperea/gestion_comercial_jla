@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 /**
  * Endpoint para validar un token de recuperación de contraseña
@@ -18,8 +19,8 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Llamar al backend Django para validar el token
-    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/password-reset/validate/`
+    // Llamar al backend Django para validar el token usando configuración centralizada
+    const djangoUrl = buildUrl(API_ENDPOINTS.auth.validateResetToken)
     
     console.log(`🔍 Validando token de recuperación`)
 

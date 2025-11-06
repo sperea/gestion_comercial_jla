@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 // Proxy para el backend Django - redirige la petición al backend real
 export async function POST(req: NextRequest) {
   try {
     const { email, password, rememberMe } = await req.json()
 
-    // Hacer la petición al backend Django real
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    const loginUrl = `${backendUrl}/api/token/`
+    // Usar configuración centralizada para construir URL del backend
+    const loginUrl = buildUrl(API_ENDPOINTS.auth.login)
     
     console.log('🔑 Login request con rememberMe:', { email, password: '***', rememberMe })
     
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     // Obtener información del usuario usando el access token
     let userData = null
     try {
-      const userResponse = await fetch(`${backendUrl}/user/user-info/`, {
+      const userResponse = await fetch(buildUrl(API_ENDPOINTS.auth.userInfo), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${tokens.access}`,

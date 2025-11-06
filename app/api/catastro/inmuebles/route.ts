@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { config } from '@/lib/config'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,29 +37,27 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Construir la URL de la API con parámetros
-    const apiEndpoint = new URL(`${config.apiUrl}/catastro/inmuebles/`)
-    apiEndpoint.searchParams.set('tipo_via', tipoVia)
-    apiEndpoint.searchParams.set('nombre_via', nombreVia)
-    apiEndpoint.searchParams.set('nombre_municipio', nombreMunicipio)
-    apiEndpoint.searchParams.set('nombre_provincia', nombreProvincia)
-    
-    // Solo añadir número si existe y no está vacío
-    if (numero && numero.trim()) {
-      apiEndpoint.searchParams.set('numero', numero.trim())
-    }
-
-    console.log('📍 Parámetros recibidos:', {
+    // Construir parámetros de query
+    const params: Record<string, string> = {
       tipo_via: tipoVia,
       nombre_via: nombreVia,
       nombre_municipio: nombreMunicipio,
       nombre_provincia: nombreProvincia,
-      numero: numero
-    })
-    console.log('🌐 Llamando a la API de inmuebles:', apiEndpoint.toString())
+    }
+    
+    // Solo añadir número si existe y no está vacío
+    if (numero && numero.trim()) {
+      params.numero = numero.trim()
+    }
+
+    // Construir la URL de la API usando configuración centralizada
+    const apiUrl = buildUrl(API_ENDPOINTS.catastro.inmuebles, params)
+
+    console.log('📍 Parámetros recibidos:', params)
+    console.log('🌐 Llamando a la API de inmuebles:', apiUrl)
 
     // Hacer la llamada a la API externa
-    const response = await fetch(apiEndpoint.toString(), {
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken.value}`,
@@ -81,7 +79,7 @@ export async function GET(request: NextRequest) {
       // Si es error 401, intentar refrescar el token
       if (response.status === 401 && refreshToken) {
         try {
-          const refreshResponse = await fetch(`${config.apiUrl}/api/token/refresh/`, {
+          const refreshResponse = await fetch(buildUrl(API_ENDPOINTS.auth.refresh), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -95,7 +93,7 @@ export async function GET(request: NextRequest) {
             const refreshData = await refreshResponse.json()
             
             // Reintentar la llamada original con el nuevo token
-            const retryResponse = await fetch(apiEndpoint.toString(), {
+            const retryResponse = await fetch(apiUrl, {
               method: 'GET',
               headers: {
                 'Authorization': `Bearer ${refreshData.access}`,

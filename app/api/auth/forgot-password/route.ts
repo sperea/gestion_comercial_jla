@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 /**
  * Endpoint para solicitar recuperación de contraseña
@@ -28,8 +29,8 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Llamar al backend Django real
-    const djangoUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/password-reset/request/`
+    // Llamar al backend Django real usando configuración centralizada
+    const djangoUrl = buildUrl(API_ENDPOINTS.auth.forgotPassword)
     
     console.log(`🔐 Solicitando recuperación de contraseña para: ${email}`)
     console.log(`📡 Django URL: ${djangoUrl}`)

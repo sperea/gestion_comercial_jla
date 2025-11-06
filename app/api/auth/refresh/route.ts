@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildUrl, API_ENDPOINTS } from '@/lib/api-config'
 
 // Endpoint para renovar access token usando refresh token
 export async function POST(req: NextRequest) {
@@ -14,8 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Hacer petición al backend JLA Asociados para renovar el token
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    const refreshUrl = `${backendUrl}/api/token/refresh/`
+    const refreshUrl = buildUrl(API_ENDPOINTS.auth.refresh)
     
     console.log('🔄 Renovando token con backend Django...')
     
