@@ -644,13 +644,14 @@ function EdificioDetallePageContent() {
           .subtitle { color: #666; font-size: 14px; }
           .section { margin: 25px 0; }
           .section-title { font-size: 16px; font-weight: bold; color: #dc2626; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+          .section-title-main { font-size: 20px; font-weight: bold; color: #dc2626; margin-bottom: 20px; text-align: center; padding: 15px 0; border-bottom: 2px solid #dc2626; }
           .two-column-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0; }
           .column { min-height: 300px; }
           .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 15px 0; }
           .info-item { background: #f8f9fa; padding: 10px; border-radius: 5px; }
           .info-label { font-weight: bold; color: #666; font-size: 12px; }
           .info-value { font-size: 14px; margin-top: 2px; }
-          .map-container { border: 2px solid #dc2626; border-radius: 8px; overflow: hidden; height: 300px; background: white; display: flex; align-items: center; justify-content: center; }
+          .map-container { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; height: 300px; background: white; display: flex; align-items: center; justify-content: center; }
           .map-image { width: 100%; height: 100%; object-fit: contain; }
           .map-placeholder { text-align: center; color: #374151; font-size: 12px; padding: 20px; line-height: 1.4; width: 100%; }
           .tipos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
@@ -758,7 +759,7 @@ function EdificioDetallePageContent() {
 
         ${selectedInmuebles.size > 0 ? `
         <div class="section page-break">
-          <div class="section-title">Inmuebles Seleccionados (${selectedInmuebles.size} de ${inmuebles.length})</div>
+          <div class="section-title-main">Inmuebles Seleccionados (${selectedInmuebles.size} de ${inmuebles.length})</div>
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">Cantidad Total</div>
