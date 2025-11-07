@@ -662,10 +662,20 @@ function EdificioDetallePageContent() {
           .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
           .table th { background: #f5f5f5; font-weight: bold; }
           .table tr:nth-child(even) { background: #f9f9f9; }
-          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px; }
-          .page-break { page-break-before: always; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; color: #666; font-size: 12px; }
+          .footer-left { text-align: left; }
+          .footer-right { text-align: right; }
           @media print {
             .page-break { page-break-before: always; }
+            /* Ocultar encabezado automático del navegador */
+            @page {
+              margin-top: 0.5in;
+              margin-bottom: 0.5in;
+              margin-left: 0.5in;
+              margin-right: 0.5in;
+            }
+            /* Ocultar elementos del navegador */
+            body { -webkit-print-color-adjust: exact; }
           }
         </style>
       </head>
@@ -760,6 +770,45 @@ function EdificioDetallePageContent() {
         ${selectedInmuebles.size > 0 ? `
         <div class="section page-break">
           <div class="section-title-main">Inmuebles Seleccionados (${selectedInmuebles.size} de ${inmuebles.length})</div>
+          
+          ${edificioData.direccion ? `
+          <div class="info-item" style="grid-column: 1/-1; background: #eff6ff; border: 3px solid #3b82f6; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
+            <div class="info-label" style="color: #2563eb; font-weight: bold; font-size: 14px; margin-bottom: 10px;">📍 Dirección Completa</div>
+            <div class="info-value" style="font-size: 20px; font-weight: bold; color: #1f2937; line-height: 1.4;">${edificioData.direccion}</div>
+          </div>
+          ` : ''}
+          
+          <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <div class="info-item">
+              <div class="info-label">Referencia Catastral</div>
+              <div class="info-value">${edificioData.ref_catastral}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Total Inmuebles</div>
+              <div class="info-value">${edificioData.total_inmuebles}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Superficie Parcela</div>
+              <div class="info-value">${parseFloat(edificioData.superficie_parcela_m2).toLocaleString()} m²</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Superficie Total Construida</div>
+              <div class="info-value">${parseFloat(edificioData.superficie_total_construida).toLocaleString()} m²</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Plantas Bajo Rasante</div>
+              <div class="info-value">${edificioData.plantas_bajo_rasante}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Plantas en Alto</div>
+              <div class="info-value">${edificioData.plantas_en_alto}</div>
+            </div>
+            <div class="info-item" style="grid-column: 1 / -1;">
+              <div class="info-label">Número de Escaleras</div>
+              <div class="info-value">${edificioData.numero_escaleras}</div>
+            </div>
+          </div>
+          
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">Cantidad Total</div>
@@ -809,11 +858,6 @@ function EdificioDetallePageContent() {
           </table>
         </div>
         ` : ''}
-
-        <div class="footer">
-          <p>Generado por JLA ASOCIADOS - Sistema de Gestión Catastral</p>
-          <p>Este documento contiene información oficial del Catastro</p>
-        </div>
       </body>
       </html>
     `
@@ -824,8 +868,27 @@ function EdificioDetallePageContent() {
       ventanaImpresion.document.write(htmlContent)
       ventanaImpresion.document.close()
       
+      // Configurar la ventana para evitar encabezados automáticos
+      ventanaImpresion.document.title = '' // Título vacío
+      
       // Dar tiempo para que se cargue el contenido antes de imprimir
       setTimeout(() => {
+        // Intentar ocultar encabezados y pies de página del navegador
+        const style = ventanaImpresion.document.createElement('style')
+        style.textContent = `
+          @page { 
+            margin: 0.5in; 
+            size: A4;
+            @top-left { content: ""; }
+            @top-center { content: ""; }
+            @top-right { content: ""; }
+            @bottom-left { content: ""; }
+            @bottom-center { content: ""; }
+            @bottom-right { content: ""; }
+          }
+        `
+        ventanaImpresion.document.head.appendChild(style)
+        
         ventanaImpresion.print()
       }, 100)
     }
