@@ -547,8 +547,46 @@ function EdificioDetallePageContent() {
     document.body.removeChild(link)
   }
 
+  // Función para convertir coordenadas UTM a latitud/longitud (para España - UTM zona 30N)
+  const convertirUTMaLatLon = (x: string, y: string) => {
+    // Las coordenadas vienen en formato sin decimales, hay que dividir por 100
+    // Ejemplo: 44808810 = 448088.10 metros
+    const utmX = parseFloat(x) / 100
+    const utmY = parseFloat(y) / 100
+    
+    // Validar que las coordenadas son válidas
+    if (isNaN(utmX) || isNaN(utmY)) {
+      return { lat: 40.416775, lon: -3.703790 } // Madrid como fallback
+    }
+    
+    // Conversión usando el mismo método que MapaUbicacion.tsx
+    const latFactor = 1 / 111320; // metros por grado de latitud
+    const lngFactor = 1 / (111320 * Math.cos(40.4 * Math.PI / 180)); // metros por grado de longitud
+    
+    // Punto de referencia (centro aproximado de Madrid)
+    const refX = 440000;
+    const refY = 4474000;
+    const refLat = 40.4168;
+    const refLng = -3.7038;
+    
+    // Calcular diferencias
+    const deltaX = utmX - refX;
+    const deltaY = utmY - refY;
+    
+    // Convertir a lat/lng
+    const lat = refLat + (deltaY * latFactor);
+    const lon = refLng + (deltaX * lngFactor);
+    
+    // Validar que las coordenadas están en España
+    if (lat < 35 || lat > 44 || lon < -10 || lon > 5) {
+      return { lat: 40.416775, lon: -3.703790 } // Madrid como fallback
+    }
+    
+    return { lat, lon }
+  }
+
   // Función para generar PDF del informe
-  const generarPDF = () => {
+  const generarPDF = async () => {
     if (!edificioData) return
 
     // Crear contenido HTML para el PDF
@@ -562,6 +600,36 @@ function EdificioDetallePageContent() {
       day: 'numeric'
     })
 
+    // Capturar el mapa real que se está mostrando en la página
+    let mapaImagenDataUrl = ''
+    
+    try {
+      // Buscar el contenedor del mapa en la página
+      const mapaContainer = document.querySelector('.leaflet-container') as HTMLElement
+      
+      if (mapaContainer) {
+        // Importar html2canvas dinámicamente
+        const html2canvas = (await import('html2canvas')).default
+        
+        // Capturar el mapa como canvas
+        const canvas = await html2canvas(mapaContainer, {
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          scale: 2, // Mayor resolución
+          logging: false
+        })
+        
+        // Convertir a data URL
+        mapaImagenDataUrl = canvas.toDataURL('image/png')
+        console.log('✅ Mapa capturado exitosamente')
+      } else {
+        console.warn('⚠️ No se encontró el mapa en la página')
+      }
+    } catch (error) {
+      console.error('❌ Error al capturar el mapa:', error)
+    }
+    
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -576,10 +644,15 @@ function EdificioDetallePageContent() {
           .subtitle { color: #666; font-size: 14px; }
           .section { margin: 25px 0; }
           .section-title { font-size: 16px; font-weight: bold; color: #dc2626; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+          .two-column-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0; }
+          .column { min-height: 300px; }
           .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 15px 0; }
           .info-item { background: #f8f9fa; padding: 10px; border-radius: 5px; }
           .info-label { font-weight: bold; color: #666; font-size: 12px; }
           .info-value { font-size: 14px; margin-top: 2px; }
+          .map-container { border: 2px solid #dc2626; border-radius: 8px; overflow: hidden; height: 300px; background: white; display: flex; align-items: center; justify-content: center; }
+          .map-image { width: 100%; height: 100%; object-fit: contain; }
+          .map-placeholder { text-align: center; color: #374151; font-size: 12px; padding: 20px; line-height: 1.4; width: 100%; }
           .tipos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 15px 0; }
           .tipo-card { border: 1px solid #ddd; padding: 10px; border-radius: 5px; background: #f9f9f9; }
           .tipo-header { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
@@ -600,44 +673,72 @@ function EdificioDetallePageContent() {
 
           <div class="section">
           <div class="section-title">Información General del Edificio</div>
+          
           ${edificioData.direccion ? `
           <div class="info-item" style="grid-column: 1/-1; background: #eff6ff; border: 3px solid #3b82f6; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
             <div class="info-label" style="color: #2563eb; font-weight: bold; font-size: 14px; margin-bottom: 10px;">📍 Dirección Completa</div>
             <div class="info-value" style="font-size: 20px; font-weight: bold; color: #1f2937; line-height: 1.4;">${edificioData.direccion}</div>
           </div>
           ` : ''}
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">Referencia Catastral</div>
-              <div class="info-value">${edificioData.ref_catastral}</div>
+          
+          <div class="two-column-layout">
+            <!-- Columna de información -->
+            <div class="column">
+              <div class="info-grid" style="grid-template-columns: 1fr;">
+                <div class="info-item">
+                  <div class="info-label">Referencia Catastral</div>
+                  <div class="info-value">${edificioData.ref_catastral}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Superficie Parcela</div>
+                  <div class="info-value">${parseFloat(edificioData.superficie_parcela_m2).toLocaleString()} m²</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Total Inmuebles</div>
+                  <div class="info-value">${edificioData.total_inmuebles}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Superficie Total Construida</div>
+                  <div class="info-value">${parseFloat(edificioData.superficie_total_construida).toLocaleString()} m²</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Plantas Bajo Rasante</div>
+                  <div class="info-value">${edificioData.plantas_bajo_rasante}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Plantas en Alto</div>
+                  <div class="info-value">${edificioData.plantas_en_alto}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Número de Escaleras</div>
+                  <div class="info-value">${edificioData.numero_escaleras}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Código Postal</div>
+                  <div class="info-value">${edificioData.codigo_postal}</div>
+                </div>
+              </div>
             </div>
-            <div class="info-item">
-              <div class="info-label">Superficie Parcela</div>
-              <div class="info-value">${parseFloat(edificioData.superficie_parcela_m2).toLocaleString()} m²</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Total Inmuebles</div>
-              <div class="info-value">${edificioData.total_inmuebles}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Superficie Total Construida</div>
-              <div class="info-value">${parseFloat(edificioData.superficie_total_construida).toLocaleString()} m²</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Plantas Bajo Rasante</div>
-              <div class="info-value">${edificioData.plantas_bajo_rasante}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Plantas en Alto</div>
-              <div class="info-value">${edificioData.plantas_en_alto}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Número de Escaleras</div>
-              <div class="info-value">${edificioData.numero_escaleras}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Código Postal</div>
-              <div class="info-value">${edificioData.codigo_postal}</div>
+            
+            <!-- Columna del mapa -->
+            <div class="column">
+              <div class="map-container">
+                ${mapaImagenDataUrl ? `
+                  <img 
+                    class="map-image" 
+                    src="${mapaImagenDataUrl}" 
+                    alt="Mapa de ubicación del edificio" 
+                    style="width: 100%; height: 100%; object-fit: contain;" 
+                  />
+                ` : `
+                  <div style="display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; color: #666;">
+                    <div>
+                      <p style="font-weight: bold; margin-bottom: 10px;">Mapa no disponible</p>
+                      <p style="font-size: 12px;">Consulte la versión web para ver el mapa interactivo</p>
+                    </div>
+                  </div>
+                `}
+              </div>
             </div>
           </div>
         </div>
