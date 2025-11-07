@@ -684,18 +684,18 @@ function EdificioDetallePageContent() {
           <div class="two-column-layout">
             <!-- Columna de información -->
             <div class="column">
-              <div class="info-grid" style="grid-template-columns: 1fr;">
+              <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div class="info-item">
                   <div class="info-label">Referencia Catastral</div>
                   <div class="info-value">${edificioData.ref_catastral}</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Superficie Parcela</div>
-                  <div class="info-value">${parseFloat(edificioData.superficie_parcela_m2).toLocaleString()} m²</div>
-                </div>
-                <div class="info-item">
                   <div class="info-label">Total Inmuebles</div>
                   <div class="info-value">${edificioData.total_inmuebles}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Superficie Parcela</div>
+                  <div class="info-value">${parseFloat(edificioData.superficie_parcela_m2).toLocaleString()} m²</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">Superficie Total Construida</div>
@@ -709,13 +709,9 @@ function EdificioDetallePageContent() {
                   <div class="info-label">Plantas en Alto</div>
                   <div class="info-value">${edificioData.plantas_en_alto}</div>
                 </div>
-                <div class="info-item">
+                <div class="info-item" style="grid-column: 1 / -1;">
                   <div class="info-label">Número de Escaleras</div>
                   <div class="info-value">${edificioData.numero_escaleras}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Código Postal</div>
-                  <div class="info-value">${edificioData.codigo_postal}</div>
                 </div>
               </div>
             </div>
