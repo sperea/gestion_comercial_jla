@@ -662,6 +662,10 @@ function EdificioDetallePageContent() {
           .table th { background: #f5f5f5; font-weight: bold; }
           .table tr:nth-child(even) { background: #f9f9f9; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 12px; }
+          .page-break { page-break-before: always; }
+          @media print {
+            .page-break { page-break-before: always; }
+          }
         </style>
       </head>
       <body>
@@ -753,7 +757,7 @@ function EdificioDetallePageContent() {
         </div>
 
         ${selectedInmuebles.size > 0 ? `
-        <div class="section">
+        <div class="section page-break">
           <div class="section-title">Inmuebles Seleccionados (${selectedInmuebles.size} de ${inmuebles.length})</div>
           <div class="info-grid">
             <div class="info-item">
