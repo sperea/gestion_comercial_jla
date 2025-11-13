@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { profileAPI, UserSettings, UserSettingsUpdate } from '@/lib/api'
-import Header from '@/components/ui/Header'
 import Button from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout'
@@ -177,11 +176,8 @@ const ConfiguracionPage = () => {
   if (loading) {
     return (
       <AuthenticatedLayout>
-        <div className="bg-gray-50 min-h-screen">
-          <Header />
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </AuthenticatedLayout>
     )
@@ -190,7 +186,6 @@ const ConfiguracionPage = () => {
   return (
     <AuthenticatedLayout>
       <div className="bg-gray-50 min-h-screen">
-        <Header />
         <main className="py-8 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}

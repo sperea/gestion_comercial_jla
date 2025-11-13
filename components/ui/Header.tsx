@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 import { profileAPI } from '@/lib/api'
 
 export default function Header() {
-  const { user, logout } = useAuth()
+  const { user, logout, loading } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
@@ -64,7 +64,18 @@ export default function Header() {
 
   // Determinar si mostrar datos del usuario o estado de carga
   const hasValidUser = user && user.email && isValidUserEmail(user.email)
-  const showUserData = hasValidUser && userFullName
+  const showUserData = hasValidUser || (user && userFullName) // Mostrar si tiene email válido O si tiene nombre
+
+  console.log('🔍 Header Debug:', {
+    hasUser: !!user,
+    hasEmail: !!user?.email,
+    email: user?.email,
+    hasValidEmail: user?.email ? isValidUserEmail(user.email) : false,
+    hasFullName: !!userFullName,
+    fullName: userFullName,
+    showUserData,
+    loading: loading
+  })
 
   // Debug de imagen de perfil
   if (user) {
@@ -134,10 +145,10 @@ export default function Header() {
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-gray-900 font-medium">
-                    {showUserData ? userFullName : 'Cargando sesión...'}
+                    {loading ? 'Cargando...' : (showUserData ? userFullName : 'Usuario')}
                   </p>
                   <p className="text-gray-500 text-xs">
-                    {showUserData ? user.email : ''}
+                    {loading ? '' : (showUserData ? user?.email : '')}
                   </p>
                 </div>
                 <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,10 +162,10 @@ export default function Header() {
                   <div className="py-1">
                     <div className="px-4 py-2 border-b border-gray-200">
                       <p className="text-sm font-medium text-gray-900">
-                        {showUserData ? userFullName : 'Cargando sesión...'}
+                        {loading ? 'Cargando...' : (showUserData ? userFullName : 'Usuario')}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {showUserData ? user.email : ''}
+                        {loading ? '' : (showUserData ? user?.email : '')}
                       </p>
                     </div>
                     <a

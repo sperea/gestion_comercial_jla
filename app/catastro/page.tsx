@@ -661,15 +661,7 @@ export default function CatastroPage() {
                       </button>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        onClick={() => console.log('Ver datos del portal - Funcionalidad pendiente')}
-                        className="px-4 py-2 text-sm font-medium"
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        Ver DETALLE de este portal
-                      </Button>
+
                       <Button
                         onClick={() => window.location.href = `/catastro/edificio?ref=${encodeURIComponent(estadisticas.refCatastral)}`}
                         className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700"

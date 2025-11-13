@@ -40,8 +40,12 @@ export async function GET(request: NextRequest) {
     // Construir la URL de la API usando configuración centralizada
     const apiUrl = buildUrl('/catastro/inmuebles/listado/refcat', params)
 
-    console.log('📍 Referencia catastral:', refcat)
-    console.log('🌐 Llamando a la API de listado de inmuebles:', apiUrl)
+    console.log('🏠 Listado inmuebles por refcat - Parámetros recibidos:', { refcat })
+    console.log('🌐 URL completa de la API:', apiUrl)
+    console.log('📤 Headers de la petición:', {
+      'Authorization': `Bearer ${accessToken.value.substring(0, 20)}...`,
+      'Content-Type': 'application/json'
+    })
 
     // Hacer la llamada a la API externa
     const response = await fetch(apiUrl, {
@@ -54,18 +58,23 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json()
     
-    console.log('📋 Respuesta de la API de listado de inmuebles:', {
+    console.log('📋 Respuesta de Django:', {
       status: response.status,
-      dataType: typeof data,
-      dataLength: Array.isArray(data) ? data.length : 'No es array',
+      contentType: response.headers.get('content-type'),
+      dataLength: Array.isArray(data) ? data.length : (typeof data === 'object' ? Object.keys(data).length : 'scalar'),
       hasData: !!data
     })
+    console.log('📊 Datos recibidos:', data)
 
     if (!response.ok) {
       // Si es error 401, intentar refrescar el token
       if (response.status === 401 && refreshToken) {
         try {
-          const refreshResponse = await fetch(buildUrl('/api/token/refresh/'), {
+          console.log('🔄 Token expirado, intentando refresh...')
+          const refreshUrl = buildUrl('/api/token/refresh/')
+          console.log('🔄 URL de refresh:', refreshUrl)
+          
+          const refreshResponse = await fetch(refreshUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -77,8 +86,10 @@ export async function GET(request: NextRequest) {
 
           if (refreshResponse.ok) {
             const refreshData = await refreshResponse.json()
+            console.log('✅ Token refreshed exitosamente')
             
             // Reintentar la llamada original con el nuevo token
+            console.log('🔄 Reintentando llamada original con nuevo token...')
             const retryResponse = await fetch(apiUrl, {
               method: 'GET',
               headers: {

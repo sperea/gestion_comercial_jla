@@ -53,8 +53,12 @@ export async function GET(request: NextRequest) {
     // Construir la URL de la API usando configuración centralizada
     const apiUrl = buildUrl(API_ENDPOINTS.catastro.inmuebles, params)
 
-    console.log('📍 Parámetros recibidos:', params)
-    console.log('🌐 Llamando a la API de inmuebles:', apiUrl)
+    console.log('🏠 Búsqueda inmuebles - Parámetros recibidos:', params)
+    console.log('🌐 URL completa de la API Django:', apiUrl)
+    console.log('📤 Headers de la petición:', {
+      'Authorization': `Bearer ${accessToken.value.substring(0, 20)}...`,
+      'Content-Type': 'application/json'
+    })
 
     // Hacer la llamada a la API externa
     const response = await fetch(apiUrl, {
@@ -65,6 +69,22 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    console.log(' Respuesta status:', response.status)
+
+    if (!response.ok) {
+      console.error('❌ Error en la respuesta de Django:', {
+        status: response.status,
+        statusText: response.statusText
+      })
+
+      // Si es 401, intentar refrescar el token (para ahora, simplemente devolver el error)
+      if (response.status === 401) {
+        console.log('🔄 Token expirado - necesario implementar refresh')
+      }
+      
+      throw new Error(`API call failed with status ${response.status}`)
+    }
+
     const data = await response.json()
     
     console.log('📋 Respuesta de la API de inmuebles:', {
@@ -74,72 +94,9 @@ export async function GET(request: NextRequest) {
       firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
       data: data
     })
-
-    if (!response.ok) {
-      // Si es error 401, intentar refrescar el token
-      if (response.status === 401 && refreshToken) {
-        try {
-          const refreshResponse = await fetch(buildUrl(API_ENDPOINTS.auth.refresh), {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              refresh: refreshToken.value
-            })
-          })
-
-          if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json()
-            
-            // Reintentar la llamada original con el nuevo token
-            const retryResponse = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${refreshData.access}`,
-                'Content-Type': 'application/json',
-              },
-            })
-
-            const retryData = await retryResponse.json()
-            
-            if (retryResponse.ok) {
-              // Actualizar la cookie del access token
-              const response = NextResponse.json({
-                success: true,
-                data: retryData
-              })
-              
-              response.cookies.set('access-token', refreshData.access, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                path: '/',
-                maxAge: 60 * 60 * 24 // 24 horas
-              })
-
-              return response
-            }
-          }
-        } catch (refreshError) {
-          console.error('Error al refrescar token:', refreshError)
-        }
-      }
-
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: `Error del servidor: ${response.status}`,
-          details: data 
-        },
-        { status: response.status }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: data
-    })
+    
+    console.log('✅ Respuesta exitosa de Django:', data)
+    return NextResponse.json({ success: true, data })
 
   } catch (error) {
     console.error('Error en la búsqueda de inmuebles:', error)
