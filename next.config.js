@@ -1,16 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Redirecciones
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/login',
-        permanent: false,
-      },
-    ]
-  },
-  
   // Configuración para diferentes entornos
   ...(process.env.NODE_ENV === 'production' && process.env.VERCEL !== '1' && {
     // Solo usar standalone para Docker, no para Vercel
