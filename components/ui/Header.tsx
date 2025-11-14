@@ -244,7 +244,7 @@ export default function Header() {
                         {loading ? '' : (showUserData ? user?.email : '')}
                       </p>
                     </div>
-                    <a
+                    <Link
                       href="/profile"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
@@ -252,8 +252,8 @@ export default function Header() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       Mi Perfil
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href="/configuracion"
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
@@ -262,7 +262,7 @@ export default function Header() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                       Configuración
-                    </a>
+                    </Link>
                     <div className="border-t border-gray-200">
                       <button
                         onClick={handleLogout}
