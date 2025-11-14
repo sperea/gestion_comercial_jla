@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation'
-
+// Esta página nunca debería renderizarse debido al middleware
+// que redirige "/" a "/login"
 export default function HomePage() {
-  // Redirección inmediata al login
-  redirect('/login')
+  return null
 }
