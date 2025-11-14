@@ -93,6 +93,7 @@ interface InmuebleDetalle {
 function EdificioDetallePageContent() {
   const searchParams = useSearchParams()
   const refCatastral = searchParams.get('ref')
+  const direccionBusqueda = searchParams.get('direccion_busqueda') // Nueva parámetro
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -689,12 +690,14 @@ function EdificioDetallePageContent() {
           <div class="section">
           <div class="section-title">Información General del Edificio</div>
           
-          ${edificioData.direccion ? `
           <div class="info-item" style="grid-column: 1/-1; background: #eff6ff; border: 3px solid #3b82f6; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
-            <div class="info-label" style="color: #2563eb; font-weight: bold; font-size: 14px; margin-bottom: 10px;">📍 Dirección Completa</div>
-            <div class="info-value" style="font-size: 20px; font-weight: bold; color: #1f2937; line-height: 1.4;">${edificioData.direccion}</div>
+            <div class="info-label" style="color: #2563eb; font-weight: bold; font-size: 14px; margin-bottom: 10px;">📍 Dirección de Búsqueda</div>
+            <div class="info-value" style="font-size: 20px; font-weight: bold; color: #1f2937; line-height: 1.4; margin-bottom: 10px;">${direccionBusqueda || 'Dirección no especificada'}</div>
+            ${edificioData.direccion ? `
+              <div class="info-label" style="color: #6b7280; font-size: 12px; margin-bottom: 5px;">Dirección catastral:</div>
+              <div class="info-value" style="font-size: 14px; color: #4b5563;">${edificioData.direccion}</div>
+            ` : ''}
           </div>
-          ` : ''}
           
           <div class="two-column-layout">
             <!-- Columna de información -->
@@ -771,12 +774,14 @@ function EdificioDetallePageContent() {
         <div class="section page-break">
           <div class="section-title-main">Inmuebles Seleccionados (${selectedInmuebles.size} de ${inmuebles.length})</div>
           
-          ${edificioData.direccion ? `
           <div class="info-item" style="grid-column: 1/-1; background: #eff6ff; border: 3px solid #3b82f6; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
-            <div class="info-label" style="color: #2563eb; font-weight: bold; font-size: 14px; margin-bottom: 10px;">📍 Dirección Completa</div>
-            <div class="info-value" style="font-size: 20px; font-weight: bold; color: #1f2937; line-height: 1.4;">${edificioData.direccion}</div>
+            <div class="info-label" style="color: #2563eb; font-weight: bold; font-size: 14px; margin-bottom: 10px;">📍 Dirección de Búsqueda</div>
+            <div class="info-value" style="font-size: 20px; font-weight: bold; color: #1f2937; line-height: 1.4; margin-bottom: 10px;">${direccionBusqueda || 'Dirección no especificada'}</div>
+            ${edificioData.direccion ? `
+              <div class="info-label" style="color: #6b7280; font-size: 12px; margin-bottom: 5px;">Dirección catastral:</div>
+              <div class="info-value" style="font-size: 14px; color: #4b5563;">${edificioData.direccion}</div>
+            ` : ''}
           </div>
-          ` : ''}
           
           <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
             <div class="info-item">
@@ -1112,12 +1117,19 @@ function EdificioDetallePageContent() {
               <h2 className="text-xl font-bold text-gray-900 mb-4">Información General</h2>
               
               {/* Dirección completa */}
-              {edificioData.direccion && (
-                <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
-                  <p className="text-sm text-blue-600 font-medium mb-2">📍 Dirección Completa</p>
-                  <p className="font-bold text-xl text-gray-900">{edificioData.direccion}</p>
-                </div>
-              )}
+              <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+                <p className="text-sm text-blue-600 font-medium mb-2">📍 Dirección de Búsqueda</p>
+                <p className="font-bold text-xl text-gray-900 mb-3">
+                  {direccionBusqueda || 'Dirección no especificada'}
+                </p>
+                
+                {edificioData.direccion && (
+                  <>
+                    <p className="text-xs text-gray-500 mb-1">Dirección catastral:</p>
+                    <p className="text-sm text-gray-700">{edificioData.direccion}</p>
+                  </>
+                )}
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

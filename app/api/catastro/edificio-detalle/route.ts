@@ -36,8 +36,12 @@ export async function GET(request: NextRequest) {
     // Construir la URL de la API usando configuración centralizada
     const apiUrl = buildUrl(API_ENDPOINTS.catastro.inmueblesByRefcat, { refcat })
 
-    console.log('📍 Parámetros recibidos:', { refcat })
-    console.log('🌐 Llamando a la API de detalle edificio:', apiUrl)
+    console.log('🏗️ Edificio detalle - Parámetros recibidos:', { refcat })
+    console.log('🌐 URL completa de la API Django edificio detalle:', apiUrl)
+    console.log('📤 Headers de la petición edificio detalle:', {
+      'Authorization': `Bearer ${accessToken.value.substring(0, 20)}...`,
+      'Content-Type': 'application/json'
+    })
 
     // Hacer la llamada a la API externa
     const response = await fetch(apiUrl, {
@@ -48,15 +52,30 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    console.log('📨 Respuesta edificio detalle status:', response.status)
+
     const data = await response.json()
     
-    console.log('📋 Respuesta de la API de detalle edificio:', {
+    console.log('📋 Respuesta completa de la API edificio detalle:', {
       status: response.status,
       dataLength: Array.isArray(data) ? data.length : 'No es array',
       dataType: typeof data,
-      firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
       data: data
     })
+
+    if (Array.isArray(data) && data.length > 0) {
+      console.log('🏠 Primer elemento del edificio detalle:', {
+        ref_catastral: data[0].ref_catastral,
+        tipo_via: data[0].tipo_via,
+        nombre_via: data[0].nombre_via,
+        numero_1: data[0].numero_1,
+        letra_1: data[0].letra_1,
+        codigo_postal: data[0].codigo_postal,
+        municipio: data[0].municipio,
+        provincia: data[0].provincia,
+        direccion_construida: data[0].direccion || 'No tiene'
+      })
+    }
 
     if (!response.ok) {
       // Si es error 401, intentar refrescar el token

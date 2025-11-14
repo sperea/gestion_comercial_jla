@@ -10,13 +10,23 @@ export default function Header() {
   const { user, logout, loading } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [isProyectosMenuOpen, setIsProyectosMenuOpen] = useState(false)
+  const [isIAMenuOpen, setIsIAMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
+  const proyectosMenuRef = useRef<HTMLDivElement>(null)
+  const iaMenuRef = useRef<HTMLDivElement>(null)
 
-  // Cerrar menú de perfil cuando se hace clic fuera
+  // Cerrar menús cuando se hace clic fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setIsProfileMenuOpen(false)
+      }
+      if (proyectosMenuRef.current && !proyectosMenuRef.current.contains(event.target as Node)) {
+        setIsProyectosMenuOpen(false)
+      }
+      if (iaMenuRef.current && !iaMenuRef.current.contains(event.target as Node)) {
+        setIsIAMenuOpen(false)
       }
     }
 
@@ -110,6 +120,72 @@ export default function Header() {
             <Link href="/catastro" className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors">
               Catastro
             </Link>
+            
+            {/* Menú Proyectos con dropdown */}
+            <div className="relative" ref={proyectosMenuRef}>
+              <button
+                onClick={() => setIsProyectosMenuOpen(!isProyectosMenuOpen)}
+                className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-1"
+              >
+                <span>Comparativos</span>
+                <svg className={`h-4 w-4 transition-transform ${isProyectosMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown de Proyectos */}
+              {isProyectosMenuOpen && (
+                <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="py-1">
+                    <Link
+                      href="/proyectos/comunidades"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsProyectosMenuOpen(false)}
+                    >
+                      <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Proyectos de Comunidades
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Menú IA con dropdown */}
+            <div className="relative" ref={iaMenuRef}>
+              <button
+                onClick={() => setIsIAMenuOpen(!isIAMenuOpen)}
+                className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2"
+              >
+                {/* Icono de IA */}
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span>IA</span>
+                <svg className={`h-4 w-4 transition-transform ${isIAMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown de IA */}
+              {isIAMenuOpen && (
+                <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="py-1">
+                    <Link
+                      href="/ia/chat"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsIAMenuOpen(false)}
+                    >
+                      <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      Chat
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Acciones del usuario */}
@@ -227,6 +303,25 @@ export default function Header() {
             <Link href="/catastro" className="text-gray-900 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
               Catastro
             </Link>
+            <div className="space-y-1">
+              <div className="text-gray-900 px-3 py-2 rounded-md text-base font-medium">
+                Proyectos
+              </div>
+              <Link href="/proyectos/comunidades" className="text-gray-700 hover:text-primary block px-6 py-2 rounded-md text-sm">
+                Proyectos de Comunidades
+              </Link>
+            </div>
+            <div className="space-y-1">
+              <div className="text-gray-900 px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span>IA</span>
+              </div>
+              <Link href="/ia/chat" className="text-gray-700 hover:text-primary block px-6 py-2 rounded-md text-sm">
+                Chat
+              </Link>
+            </div>
           </div>
         </div>
       )}

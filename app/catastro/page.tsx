@@ -663,7 +663,12 @@ export default function CatastroPage() {
                     <div className="flex flex-col sm:flex-row gap-2">
 
                       <Button
-                        onClick={() => window.location.href = `/catastro/edificio?ref=${encodeURIComponent(estadisticas.refCatastral)}`}
+                        onClick={() => {
+                          // Construir la dirección de búsqueda
+                          const calleResult = resultados[calleSeleccionada!]
+                          const direccionBusqueda = `${calleResult.tipo_via} ${calleResult.nombre_via}${numeroCalle ? ' ' + numeroCalle : ''}`
+                          window.location.href = `/catastro/edificio?ref=${encodeURIComponent(estadisticas.refCatastral)}&direccion_busqueda=${encodeURIComponent(direccionBusqueda)}`
+                        }}
                         className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700"
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
