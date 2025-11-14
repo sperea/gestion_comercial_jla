@@ -1,5 +1,6 @@
 'use client'
 
+// Header component with Next.js Link navigation
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
