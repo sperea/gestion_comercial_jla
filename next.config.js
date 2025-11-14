@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración para Docker - genera build standalone
-  output: 'standalone',
+  // Configuración para diferentes entornos
+  ...(process.env.NODE_ENV === 'production' && process.env.VERCEL !== '1' && {
+    // Solo usar standalone para Docker, no para Vercel
+    output: 'standalone',
+  }),
   
   images: {
     remotePatterns: [
@@ -15,6 +18,17 @@ const nextConfig = {
         protocol: 'http',
         hostname: '127.0.0.1',
         port: '8000',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8004',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.jlaasociados.net',
         pathname: '/media/**',
       },
     ],
