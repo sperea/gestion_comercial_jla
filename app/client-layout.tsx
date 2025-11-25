@@ -2,7 +2,8 @@
 
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/context/AuthContext'
-import { RoleProvider } from '@/context/RoleContext'
+import { GroupProvider } from '@/context/GroupContext'
+import { ProtectedRoute } from '@/components/ui/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
 
 interface ClientLayoutProps {
@@ -13,8 +14,10 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <ToastProvider>
       <AuthProvider>
-        <RoleProvider>
-          {children}
+        <GroupProvider>
+          <ProtectedRoute>
+            {children}
+          </ProtectedRoute>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -39,7 +42,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
               },
             }}
           />
-        </RoleProvider>
+        </GroupProvider>
       </AuthProvider>
     </ToastProvider>
   )

@@ -1,11 +1,20 @@
 import config from './config'
 import { buildUrl, API_ENDPOINTS } from './api-config'
-import type { UserRoles } from './types/roles'
 
 export interface LoginCredentials {
   email: string
   password: string
   rememberMe?: boolean
+}
+
+export interface UserGroup {
+  name: string
+  id?: number
+}
+
+export interface UserGroupsResponse {
+  count: number
+  results: UserGroup[]
 }
 
 export interface User {
@@ -19,12 +28,14 @@ export interface User {
   phone?: string
   avatar?: string
   profile_image?: string | null  // Nueva propiedad para imagen de perfil desde Django
-  role?: string
-  roles?: any[]
-  role_names?: string[]
   is_active: boolean
   date_joined?: string
   last_login?: string
+}
+
+// Nueva interface para el usuario con grupos cargados
+export interface UserWithGroups extends User {
+  groups: UserGroup[]
 }
 
 export interface UserSettings {
@@ -85,6 +96,30 @@ export interface ApiResponse<T = any> {
 async function fetchWithCredentials(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers)
   
+  // Para llamadas al backend Django, obtener token JWT desde las cookies HTTP-Only
+  if (url.includes('api.jlaasociados.net')) {
+    try {
+      const tokenResponse = await fetch('/api/auth/token', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (tokenResponse.ok) {
+        const tokenData = await tokenResponse.json();
+        if (tokenData.hasToken && tokenData.tokens?.access) {
+          headers.set('Authorization', `Bearer ${tokenData.tokens.access}`)
+          console.log('🔑 [API] Token JWT obtenido desde cookies HTTP-Only y agregado a headers')
+        } else {
+          console.warn('⚠️ [API] No se encontró token JWT en cookies HTTP-Only')
+        }
+      } else {
+        console.warn('⚠️ [API] No se pudo obtener token desde cookies HTTP-Only')
+      }
+    } catch (error) {
+      console.error('❌ [API] Error obteniendo token JWT desde cookies HTTP-Only:', error)
+    }
+  }
+  
   // Si es una operación que modifica datos, agregar CSRF token
   const isModifyingOperation = options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())
   
@@ -95,12 +130,17 @@ async function fetchWithCredentials(url: string, options: RequestInit = {}) {
     }
   }
 
+  console.log(`📡 [API] ${options.method || 'GET'} ${url}`)
+  console.log('📋 [API] Headers:', Object.fromEntries(headers.entries()))
+
   const response = await fetch(url, {
     ...options,
     headers,
     credentials: 'include'
   })
 
+  console.log(`📊 [API] Response status: ${response.status}`)
+  
   return response
 }
 
@@ -115,6 +155,24 @@ const getCookieValue = (name: string): string | null => {
   if (parts.length === 2) {
     return parts.pop()?.split(';').shift() || null
   }
+  return null
+}
+
+// Helper para obtener token JWT desde cookies (DEPRECATED - usar /api/auth/token)
+function getJWTToken(): string | null {
+  if (typeof document === 'undefined') return null
+  
+  console.log('⚠️ [API] getJWTToken() está deprecated. Las cookies HTTP-Only no son accesibles desde JavaScript.')
+  console.log('🍪 [API] Cookies visibles:', document.cookie)
+  
+  // Solo cookies no HTTP-Only serían visibles aquí
+  const token = getCookieValue('access-token')
+  if (token) {
+    console.log(`✅ [API] Token JWT encontrado en cookie no HTTP-Only: access-token`)
+    return token
+  }
+  
+  console.log('❌ [API] No se encontró token JWT en cookies accesibles desde JavaScript')
   return null
 }
 
@@ -327,10 +385,10 @@ export const authAPI = {
     }
   },
 
-  // Obtener roles del usuario actual
-  async getUserRoles(): Promise<ApiResponse<UserRoles>> {
+  // Obtener grupos del usuario actual
+  async getUserGroups(): Promise<ApiResponse<UserGroup[]>> {
     try {
-      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.roles))
+      const response = await fetchWithCredentials(buildUrl(API_ENDPOINTS.user.groups))
 
       if (response.status === 401) {
         return { success: false, error: 'No autenticado' }
@@ -338,7 +396,7 @@ export const authAPI = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || errorData.detail || 'Error al obtener roles')
+        throw new Error(errorData.message || errorData.detail || 'Error al obtener grupos')
       }
 
       const data = await response.json()
@@ -346,7 +404,7 @@ export const authAPI = {
       return {
         success: true,
         data: data,
-        message: 'Roles obtenidos exitosamente'
+        message: 'Grupos obtenidos exitosamente'
       }
     } catch (error) {
       return {
@@ -359,6 +417,51 @@ export const authAPI = {
 
 // Profile API functions
 export const profileAPI = {
+  // Obtener grupos del usuario actual
+  async getUserGroups(): Promise<ApiResponse<UserGroup[]>> {
+    try {
+      console.log('📡 Llamando a profileAPI.getUserGroups()...')
+      
+      // Debug: Verificar cookies antes de la llamada
+      if (typeof document !== 'undefined') {
+        console.log('🍪 [DEBUG] Cookies disponibles:', document.cookie)
+        console.log('🔑 [DEBUG] Token JWT encontrado:', getJWTToken() ? 'SÍ' : 'NO')
+      }
+      
+      const response = await fetchWithCredentials(buildUrl('/user/my-groups/'))
+
+      if (response.status === 401) {
+        console.error('❌ [ProfileAPI] Token JWT inválido o expirado')
+        return { success: false, error: 'No autenticado' }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Error del servidor:', response.status, errorData)
+        throw new Error(errorData.message || errorData.detail || 'Error al obtener grupos')
+      }
+
+      const data = await response.json()
+      console.log('📡 Respuesta de profileAPI.getUserGroups():', data)
+      
+      // La respuesta es directamente un array de grupos
+      const groups: UserGroup[] = Array.isArray(data) ? data : []
+      
+      return {
+        success: true,
+        data: groups,
+        message: `Se obtuvieron ${groups.length} grupo(s) exitosamente`
+      }
+    } catch (error) {
+      console.error('❌ Error en profileAPI.getUserGroups():', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
+    }
+  },
+
+
   // Obtener perfil del usuario actual
   async getProfile(): Promise<ApiResponse<User>> {
     try {
@@ -654,4 +757,79 @@ export const profileAPI = {
     // Si es una ruta relativa, construir URL completa usando la configuración del backend
     return `${config.apiUrl}${imagePath}`
   }
+}
+
+// Función de debug para diagnosticar problemas de autenticación
+export const debugAPI = {
+  async checkAuthStatus(): Promise<void> {
+    console.log('🔍 [DEBUG] === Diagnóstico de Autenticación ===')
+    
+    // 1. Verificar cookies disponibles
+    if (typeof document !== 'undefined') {
+      console.log('🍪 [DEBUG] Cookies disponibles:')
+      const cookies = document.cookie.split(';')
+      cookies.forEach(cookie => {
+        const [name, value] = cookie.trim().split('=')
+        if (name.includes('token') || name.includes('jwt') || name.includes('access') || name.includes('csrf')) {
+          console.log(`  ${name}: ${value?.substring(0, 20)}...`)
+        }
+      })
+      
+      console.log('🔑 [DEBUG] Token JWT detectado:', getJWTToken() ? 'SÍ' : 'NO')
+    }
+    
+    // 2. Probar endpoint /auth/me
+    try {
+      console.log('🔍 [DEBUG] Probando endpoint /auth/me...')
+      const meResponse = await authAPI.me()
+      console.log('👤 [DEBUG] authAPI.me() resultado:', meResponse)
+    } catch (error) {
+      console.error('❌ [DEBUG] Error en authAPI.me():', error)
+    }
+    
+    // 3. Probar endpoint de grupos directamente
+    try {
+      console.log('🔍 [DEBUG] Probando endpoint /user/my-groups/ directamente...')
+      const groupsResponse = await profileAPI.getUserGroups()
+      console.log('👥 [DEBUG] profileAPI.getUserGroups() resultado:', groupsResponse)
+    } catch (error) {
+      console.error('❌ [DEBUG] Error en profileAPI.getUserGroups():', error)
+    }
+    
+    console.log('🔍 [DEBUG] === Fin del Diagnóstico ===')
+  },
+  
+  async testGroupsEndpoint(): Promise<void> {
+    console.log('🧪 [DEBUG] Probando endpoint de grupos con diferentes métodos...')
+    
+    const endpoints = [
+      '/user/my-groups/',
+      '/user/my-groups',
+      '/api/user/my-groups/',
+      '/me/groups/',
+      '/groups/'
+    ]
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`🔍 [DEBUG] Probando: ${endpoint}`)
+        const response = await fetchWithCredentials(buildUrl(endpoint))
+        console.log(`📊 [DEBUG] ${endpoint} → Status: ${response.status}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log(`✅ [DEBUG] ${endpoint} → Datos:`, data)
+          break // Si funciona, no seguir probando
+        }
+      } catch (error) {
+        console.log(`❌ [DEBUG] ${endpoint} → Error:`, error)
+      }
+    }
+  }
+}
+
+// Exponer función de debug globalmente para testing
+if (typeof window !== 'undefined') {
+  ;(window as any).debugJLAAuth = debugAPI.checkAuthStatus
+  ;(window as any).testJLAGroups = debugAPI.testGroupsEndpoint
 }

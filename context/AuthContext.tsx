@@ -126,17 +126,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await authAPI.logout()
       setUser(null)
-      // Limpiar el flag de "recordarme" al cerrar sesión
+      
+      // Limpiar todos los datos del localStorage relacionados con autenticación
       localStorage.removeItem('jla_remember_me')
+      localStorage.removeItem('jla_redirect_after_login')
+      
       addToast({ type: 'success', message: 'Sesión cerrada exitosamente' })
+      
+      // Redirigir inmediatamente al login usando window.location para forzar recarga
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 500)
+      
     } catch (error) {
       // Aunque falle el logout en el servidor, limpiamos el estado local
       setUser(null)
       localStorage.removeItem('jla_remember_me')
+      localStorage.removeItem('jla_redirect_after_login')
+      
       addToast({
         type: 'error',
         message: 'Error al cerrar sesión, pero se limpió localmente'
       })
+      
+      // Redirigir de todas formas
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 1000)
     }
   }
 
