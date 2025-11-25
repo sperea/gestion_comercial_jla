@@ -102,7 +102,7 @@ export const API_ENDPOINTS = {
   user: {
     profile: '/user/me/profile/',
     profileImage: '/user/me/profile/image/',
-    roles: '/user/me/roles/',
+    groups: '/user/my-groups/',
     settings: '/user/me/settings/',
   },
   

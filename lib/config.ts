@@ -3,6 +3,9 @@ export const config = {
   // URL base de la API del backend
   apiUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
   
+  // URL de la API de intranet
+  intranetApiUrl: process.env.NEXT_PUBLIC_INTRANET_API_URL || 'https://portal.jlaasociados.net',
+  
   // Configuración de desarrollo
   isDev: process.env.NODE_ENV === 'development',
   isProd: process.env.NODE_ENV === 'production',

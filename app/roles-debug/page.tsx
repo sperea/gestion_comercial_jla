@@ -1,6 +1,6 @@
 'use client'
 
-import { useRoles } from '@/context/RoleContext'
+import { useRoles } from '@/context/GroupContext'
 import { useAuth } from '@/context/AuthContext'
 
 export default function RoleDebugPage() {

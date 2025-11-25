@@ -7,6 +7,15 @@ export interface LoginCredentials {
   rememberMe?: boolean
 }
 
+export interface UserProfile {
+  token_intranet?: string
+  erp_id_colaborador?: string
+  colaborador_id?: string
+  location?: string
+  bio?: string
+  birth_date?: string | null
+}
+
 export interface UserGroup {
   name: string
   id?: number
@@ -31,6 +40,9 @@ export interface User {
   is_active: boolean
   date_joined?: string
   last_login?: string
+  profile?: UserProfile  // Perfil extendido con token_intranet
+  all_groups?: UserGroup[]  // Grupos del usuario
+  has_profile?: boolean
 }
 
 // Nueva interface para el usuario con grupos cargados
@@ -92,8 +104,23 @@ export interface ApiResponse<T = any> {
   error?: string
 }
 
+// Función para obtener token_intranet del perfil del usuario
+const getIntranetToken = async (): Promise<string | null> => {
+  try {
+    const response = await fetchWithCredentials(`${process.env.NEXT_PUBLIC_API_URL}/user/user-info/`)
+    if (response.ok) {
+      const userData = await response.json()
+      return userData.profile?.token_intranet || null
+    }
+    return null
+  } catch (error) {
+    console.error('Error obteniendo token_intranet:', error)
+    return null
+  }
+}
+
 // Función helper para realizar requests con credenciales
-async function fetchWithCredentials(url: string, options: RequestInit = {}) {
+export async function fetchWithCredentials(url: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers)
   
   // Para llamadas al backend Django, obtener token JWT desde las cookies HTTP-Only
@@ -142,6 +169,42 @@ async function fetchWithCredentials(url: string, options: RequestInit = {}) {
   console.log(`📊 [API] Response status: ${response.status}`)
   
   return response
+}
+
+// Función para realizar requests a la API de intranet usando token_intranet
+export const fetchWithIntranetToken = async (url: string, options: RequestInit = {}) => {
+  try {
+    const intranetToken = await getIntranetToken()
+    
+    if (!intranetToken) {
+      throw new Error('No se pudo obtener el token_intranet')
+    }
+
+    console.log('🔑 [INTRANET] Token de intranet obtenido:', intranetToken.substring(0, 10) + '...')
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Token ${intranetToken}`,
+      ...options.headers
+    }
+
+    console.log('📡 [INTRANET]', options.method || 'GET', url)
+    console.log('📋 [INTRANET] Headers:', {
+      authorization: headers.Authorization
+    })
+
+    const response = await fetch(url, {
+      ...options,
+      headers
+    })
+
+    console.log('📊 [INTRANET] Response status:', response.status)
+    return response
+
+  } catch (error) {
+    console.error('🔥 [INTRANET] Error en fetchWithIntranetToken:', error)
+    throw error
+  }
 }
 
 

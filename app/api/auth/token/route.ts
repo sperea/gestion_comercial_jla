@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 // Endpoint para obtener el token JWT desde las cookies HTTP-Only
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     
     // Intentar obtener el access token
     const accessToken = cookieStore.get('access-token')?.value

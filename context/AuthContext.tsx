@@ -216,25 +216,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('🔄 AuthContext - Iniciando refreshUserData...')
       
-      // Obtener datos básicos del perfil
-      const response = await authAPI.me()
-      
-      if (response.success && response.data) {
-        // Obtener imagen de perfil por separado
-        const imageResponse = await profileAPI.getProfileImage()
-        
-        let userData = response.data
-        if (imageResponse.success && imageResponse.data?.image_url) {
-          userData = { ...userData, profile_image: imageResponse.data.image_url }
+      // Obtener datos completos del usuario incluyendo profile con token_intranet
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/user-info/`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
         }
-        
+      })
+      
+      if (response.ok) {
+        const userData = await response.json()
+        console.log('✅ AuthContext - Datos completos obtenidos:', userData)
         setUser(userData)
       } else {
-        setUser(null)
+        console.warn('⚠️ AuthContext - No se pudieron obtener datos completos, usando datos básicos')
+        // Fallback: usar endpoint básico si falla user-info
+        const basicResponse = await authAPI.me()
+        if (basicResponse.success && basicResponse.data) {
+          setUser(basicResponse.data)
+        } else {
+          setUser(null)
+        }
       }
     } catch (error) {
       console.error('❌ AuthContext - Error en refreshUserData:', error)
-      setUser(null)
+      // Fallback: intentar obtener datos básicos
+      try {
+        const basicResponse = await authAPI.me()
+        if (basicResponse.success && basicResponse.data) {
+          setUser(basicResponse.data)
+        } else {
+          setUser(null)
+        }
+      } catch (fallbackError) {
+        console.error('❌ AuthContext - Error también en fallback:', fallbackError)
+        setUser(null)
+      }
     }
   }
 
