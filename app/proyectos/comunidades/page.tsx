@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useRouter } from 'next/navigation'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 // Interface para el tipo de datos de la API
@@ -28,6 +29,7 @@ type SortDirection = 'asc' | 'desc'
 
 export default function ComunidadesPage() {
   const { user } = useAuth()
+  const router = useRouter()
   
   // Estados para datos y control
   const [items, setItems] = useState<ComunidadData[]>([])
@@ -235,8 +237,7 @@ export default function ComunidadesPage() {
   }
 
   const handleEdit = (itemId: number) => {
-    const url = `${getApiUrl()}/proyectocomunidad/editar/${itemId}/`
-    window.open(url, '_blank')
+    router.push(`/proyectos/comunidades/${itemId}`)
   }
 
   // Validación: Mostrar loading si no hay token_intranet disponible

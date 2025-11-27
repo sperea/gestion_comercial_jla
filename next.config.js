@@ -16,9 +16,21 @@ const nextConfig = {
       },
       {
         protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/img/**',
+      },
+      {
+        protocol: 'http',
         hostname: '127.0.0.1',
         port: '8000',
         pathname: '/media/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '8000',
+        pathname: '/img/**',
       },
       {
         protocol: 'http',
@@ -27,9 +39,30 @@ const nextConfig = {
         pathname: '/media/**',
       },
       {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8004',
+        pathname: '/img/**',
+      },
+      {
         protocol: 'https',
         hostname: 'api.jlaasociados.net',
         pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.jlaasociados.net',
+        pathname: '/img/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'portal.jlaasociados.net',
+        pathname: '/img/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'logo.clearbit.com',
+        pathname: '/**',
       },
     ],
   },
