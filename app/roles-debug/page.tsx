@@ -57,14 +57,9 @@ export default function RoleDebugPage() {
                       <div key={group.id} className="bg-white p-3 rounded border">
                         <div className="text-sm space-y-1">
                           <div><strong>Nombre:</strong> {group.name}</div>
-                          {group.permissions && group.permissions.length > 0 && (
-                            <div>
-                              <strong>Permisos:</strong>
-                              <ul className="list-disc list-inside ml-4 text-xs text-gray-600">
-                                {group.permissions.map((perm) => (
-                                  <li key={perm.id}>{perm.name} ({perm.codename})</li>
-                                ))}
-                              </ul>
+                          {group.id && (
+                            <div className="text-xs text-gray-500">
+                              <strong>ID:</strong> {group.id}
                             </div>
                           )}
                         </div>
