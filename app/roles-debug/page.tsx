@@ -86,9 +86,9 @@ export default function RoleDebugPage() {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="font-semibold mb-2">Grupos del Sistema JLA</h3>
                   <div className="space-y-2 text-sm">
-                    <div>hasGroup('Colaborador Externo'): <span className={hasGroup('Colaborador Externo') ? 'text-green-600' : 'text-red-600'}>{hasGroup('Colaborador Externo').toString()}</span></div>
-                    <div>hasGroup('Siniestros'): <span className={hasGroup('Siniestros') ? 'text-green-600' : 'text-red-600'}>{hasGroup('Siniestros').toString()}</span></div>
-                    <div>hasGroup('Administradores'): <span className={hasGroup('Administradores') ? 'text-green-600' : 'text-red-600'}>{hasGroup('Administradores').toString()}</span></div>
+                    <div>hasGroup(&apos;Colaborador Externo&apos;): <span className={hasGroup('Colaborador Externo') ? 'text-green-600' : 'text-red-600'}>{hasGroup('Colaborador Externo').toString()}</span></div>
+                    <div>hasGroup(&apos;Siniestros&apos;): <span className={hasGroup('Siniestros') ? 'text-green-600' : 'text-red-600'}>{hasGroup('Siniestros').toString()}</span></div>
+                    <div>hasGroup(&apos;Administradores&apos;): <span className={hasGroup('Administradores') ? 'text-green-600' : 'text-red-600'}>{hasGroup('Administradores').toString()}</span></div>
                   </div>
                 </div>
 
@@ -97,7 +97,7 @@ export default function RoleDebugPage() {
                   <div className="space-y-2 text-sm">
                     <div>isCollaboradorExterno: <span className={isCollaboradorExterno ? 'text-green-600' : 'text-red-600'}>{isCollaboradorExterno.toString()}</span></div>
                     <div>hasSiniestrosAccess: <span className={hasSiniestrosAccess ? 'text-green-600' : 'text-red-600'}>{hasSiniestrosAccess.toString()}</span></div>
-                    <div>hasAnyGroup(['Siniestros', 'Administradores']): <span className={hasAnyGroup(['Siniestros', 'Administradores']) ? 'text-green-600' : 'text-red-600'}>{hasAnyGroup(['Siniestros', 'Administradores']).toString()}</span></div>
+                    <div>hasAnyGroup([&apos;Siniestros&apos;, &apos;Administradores&apos;]): <span className={hasAnyGroup(['Siniestros', 'Administradores']) ? 'text-green-600' : 'text-red-600'}>{hasAnyGroup(['Siniestros', 'Administradores']).toString()}</span></div>
                     <div>Grupos actuales: {getGroupNames().join(', ') || 'Ninguno'}</div>
                   </div>
                 </div>
