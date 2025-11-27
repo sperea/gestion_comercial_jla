@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Hacer petición al backend Django usando configuración centralizada
-    const rolesUrl = buildUrl(API_ENDPOINTS.user.roles)
+    const groupsUrl = buildUrl(API_ENDPOINTS.user.groups)
     
-    const response = await fetch(rolesUrl, {
+    const response = await fetch(groupsUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
