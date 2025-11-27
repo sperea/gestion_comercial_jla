@@ -144,3 +144,42 @@ export function buildUrl(
   
   return url.toString()
 }
+
+/**
+ * Convierte URLs de imágenes HTTP a HTTPS en producción
+ * Esto soluciona el problema de imágenes que vienen del backend con protocolo HTTP
+ * pero necesitan ser servidas con HTTPS en producción
+ * 
+ * @param imageUrl - URL de imagen que puede tener protocolo HTTP
+ * @returns URL con protocolo HTTPS si está en producción y es de un dominio conocido
+ */
+export function normalizeImageUrl(imageUrl: string): string {
+  if (!imageUrl) return imageUrl
+  
+  // Solo convertir en producción
+  if (process.env.NODE_ENV !== 'production') {
+    return imageUrl
+  }
+  
+  // Dominios que deben usar HTTPS en producción
+  const httpsOnlyDomains = [
+    'portal.jlaasociados.net',
+    'api.jlaasociados.net'
+  ]
+  
+  // Si la URL ya es HTTPS, devolverla tal como está
+  if (imageUrl.startsWith('https://')) {
+    return imageUrl
+  }
+  
+  // Convertir HTTP a HTTPS para dominios conocidos
+  if (imageUrl.startsWith('http://')) {
+    for (const domain of httpsOnlyDomains) {
+      if (imageUrl.includes(domain)) {
+        return imageUrl.replace('http://', 'https://')
+      }
+    }
+  }
+  
+  return imageUrl
+}

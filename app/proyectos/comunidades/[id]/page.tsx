@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { formatCurrency, formatFranchise, formatDate as formatDateUtil } from '@/lib/format-utils'
+import { normalizeImageUrl } from '@/lib/api-config'
 
 // Interfaces para los tipos de datos
 interface ProyectoComunidad {
@@ -763,7 +764,7 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                                     return (
                                       <Image 
                                         className="h-12 w-12 object-contain bg-white rounded border"
-                                        src={logoUrl}
+                                        src={normalizeImageUrl(logoUrl)}
                                         alt={`Logo ${columna.compania_rsocial}`}
                                         width={48}
                                         height={48}
