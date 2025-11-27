@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useGroups } from '@/context/GroupContext'
 import { profileAPI } from '@/lib/api'
 // AuthenticatedLayout is applied by `app/profile/layout.tsx` so do not wrap here to avoid duplicate headers
 import { Card } from '@/components/ui/Card'
@@ -12,6 +13,7 @@ import { toast } from 'react-hot-toast'
 
 export default function ProfilePage() {
   const { user, updateUser, updateUserImage } = useAuth()
+  const { getGroupNames } = useGroups()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null)
@@ -300,8 +302,10 @@ export default function ProfilePage() {
               <span className="ml-2 text-gray-600">{user?.username}</span>
             </div>
             <div>
-              <span className="font-medium text-gray-700">Rol:</span>
-              <span className="ml-2 text-gray-600 capitalize">{user?.role}</span>
+              <span className="font-medium text-gray-700">Grupos:</span>
+              <span className="ml-2 text-gray-600">
+                {getGroupNames().length > 0 ? getGroupNames().join(', ') : 'Sin grupos asignados'}
+              </span>
             </div>
             <div>
               <span className="font-medium text-gray-700">Fecha de registro:</span>
