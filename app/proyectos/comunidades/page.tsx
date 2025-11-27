@@ -258,7 +258,10 @@ export default function ComunidadesPage() {
                 Gestiona los comparativos de las comunidades de propietarios
               </p>
             </div>
-            <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+            <button 
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+              onClick={() => router.push('/proyectos/comunidades/nuevo')}
+            >
               + Nuevo Comparativo
             </button>
           </div>
