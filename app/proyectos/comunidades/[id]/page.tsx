@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, use } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { formatCurrency, formatFranchise, formatDate as formatDateUtil } from '@/lib/format-utils'
@@ -96,7 +97,9 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
   const [comparativo, setComparativo] = useState<ProyectoComunidad | null>(null)
   const [columnasComparativo, setColumnasComparativo] = useState<ColumnaComparativo[]>([])
   const [columnasDefault, setColumnasDefault] = useState<ColumnaComparativoDefault[]>([])
-  const [companias, setCompanias] = useState<Compania[]>([])
+  const [companias, setCompanias] = useState<Compania[]>([])  // Estados de paginación para tabla comparativo
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   const [ficheros, setFicheros] = useState<FicheroProyecto[]>([])
   
   // Estados de control
@@ -251,6 +254,21 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
     return `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><rect width='48' height='48' fill='%23f3f4f6'/><text x='24' y='30' text-anchor='middle' font-family='Arial,sans-serif' font-size='12' font-weight='bold' fill='%23374151'>${initial}</text></svg>`;
   }
 
+  // Funciones de paginación
+  const totalPages = Math.ceil(columnasComparativo.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedColumnas = columnasComparativo.slice(startIndex, endIndex)
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1) // Reset a la primera página
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+  }
+
   // Función para determinar el color del vencimiento
   const getVencimientoColor = (fechaVencimiento: string) => {
     const today = new Date()
@@ -299,25 +317,42 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {/* Breadcrumbs */}
+          <nav className="flex mb-4" aria-label="Breadcrumb">
+            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+              <li className="inline-flex items-center">
+                <Link
+                  href="/proyectos/comunidades"
+                  className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-red-600 transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                  </svg>
+                  Comparativos de Comunidades
+                </Link>
+              </li>
+              <li>
+                <div className="flex items-center">
+                  <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 truncate">
+                    {comparativo.rsocial}
+                  </span>
+                </div>
+              </li>
+            </ol>
+          </nav>
+
+          {/* Información del proyecto */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.back()}
-                className="inline-flex items-center text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Volver
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {comparativo.rsocial}
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  CIF: {comparativo.cif} • Comercial: {comparativo.comercial_nombre}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {comparativo.rsocial}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                CIF: {comparativo.cif} • Comercial: {comparativo.comercial_nombre}
+              </p>
             </div>
             <div className="flex items-center space-x-3">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
@@ -644,6 +679,30 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
               </div>
             </div>
 
+            {/* Selector de elementos por página y paginación */}
+            {columnasComparativo.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-700">Mostrar:</span>
+                    <select 
+                      value={itemsPerPage} 
+                      onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value={10}>10 por página</option>
+                      <option value={25}>25 por página</option>
+                      <option value={50}>50 por página</option>
+                      <option value={100}>100 por página</option>
+                    </select>
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    Mostrando {startIndex + 1} a {Math.min(endIndex, columnasComparativo.length)} de {columnasComparativo.length} compañías
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tabla de columnas comparativo */}
             <div className="bg-white rounded-lg shadow-sm border">
               {columnasComparativo.length === 0 ? (
@@ -677,13 +736,22 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                           Capital Asegurado
                         </th>
                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Archivo PDF
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Acciones
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {columnasComparativo.map((columna, index) => (
-                        <tr key={columna.id} className="hover:bg-gray-50">
+                      {paginatedColumnas.map((columna, index) => (
+                        <tr 
+                          key={columna.id} 
+                          className="hover:opacity-90 transition-opacity"
+                          style={{ 
+                            backgroundColor: columna.colorMyColumn || '#ffffff'
+                          }}
+                        >
                           {/* Columna de Compañía con Logo */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -748,6 +816,26 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                             </div>
                           </td>
                           
+                          {/* Columna de Archivo PDF */}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            {columna.pdfFile ? (
+                              <a
+                                href={columna.pdfFile}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded-md transition-colors"
+                                title="Descargar archivo PDF"
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                PDF
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-400">Sin archivo</span>
+                            )}
+                          </td>
+                          
                           {/* Columna de Acciones */}
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="flex justify-center space-x-2">
@@ -783,6 +871,64 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   </table>
                 </div>
               )}
+                
+                {/* Controles de paginación */}
+                {totalPages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                          Anterior
+                        </button>
+                        
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNumber;
+                            if (totalPages <= 5) {
+                              pageNumber = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNumber = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNumber = totalPages - 4 + i;
+                            } else {
+                              pageNumber = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <button
+                                key={pageNumber}
+                                onClick={() => handlePageChange(pageNumber)}
+                                className={`px-3 py-1 text-sm border rounded-md ${
+                                  currentPage === pageNumber
+                                    ? 'bg-red-600 text-white border-red-600'
+                                    : 'border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {pageNumber}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                      
+                      <div className="text-sm text-gray-700">
+                        Página {currentPage} de {totalPages}
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         )}
@@ -792,6 +938,20 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
           <div className="space-y-6">
             {/* Header de ficheros */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Documentos del proyecto:</strong> Aquí puedes subir archivos relevantes como planos, informes técnicos, copias de emails, pólizas anteriores, memorias valorativas, fotografías del inmueble, y cualquier otro documento importante para el comparativo.
+                    </p>
+                  </div>
+                </div>
+              </div>
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">Archivos del Proyecto</h2>
@@ -805,7 +965,7 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Lista de ficheros */}
+            {/* Tabla de ficheros */}
             <div className="bg-white rounded-lg shadow-sm border">
               {ficheros.length === 0 ? (
                 <div className="p-8 text-center">
@@ -821,59 +981,124 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
-                  {ficheros.map((fichero) => (
-                    <div key={fichero.id} className="p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0">
-                            <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {fichero.descripcion}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Archivo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Descripción
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tamaño
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Orden
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Fecha Subida
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {ficheros.map((fichero) => (
+                        <tr key={fichero.id} className="hover:bg-gray-50">
+                          {/* Columna del Archivo */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-8 w-8">
+                                <svg className="h-8 w-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {fichero.pdfFile?.split('/').pop() || 'Archivo sin nombre'}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  PDF
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500">
-                              Subido el {formatDate(fichero.uploaded_at)} • 
-                              {Math.round(fichero.file_size / 1024)} KB • 
-                              Orden: {fichero.orden}
+                          </td>
+
+                          {/* Columna de Descripción */}
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">
+                              {fichero.descripcion || 'Sin descripción'}
                             </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <a
-                            href={fichero.pdfFile_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center p-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
-                            title="Descargar"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </a>
-                          <button 
-                            className="inline-flex items-center p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button 
-                            className="inline-flex items-center p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors"
-                            title="Eliminar"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                          </td>
+
+                          {/* Columna de Tamaño */}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-900">
+                              {fichero.file_size ? `${Math.round(fichero.file_size / 1024)} KB` : '-'}
+                            </div>
+                          </td>
+
+                          {/* Columna de Orden */}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {fichero.orden || 0}
+                            </span>
+                          </td>
+
+                          {/* Columna de Fecha */}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-900">
+                              {formatDate(fichero.uploaded_at)}
+                            </div>
+                          </td>
+
+                          {/* Columna de Acciones */}
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="flex justify-center space-x-2">
+                              <a
+                                href={fichero.pdfFile_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-900 transition-colors"
+                                title="Descargar archivo"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </a>
+                              <button
+                                className="text-green-600 hover:text-green-900 transition-colors"
+                                title="Editar archivo"
+                                onClick={() => {
+                                  // TODO: Implementar función de edición
+                                  console.log('Editar archivo', fichero.id);
+                                }}
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              <button
+                                className="text-red-600 hover:text-red-900 transition-colors"
+                                title="Eliminar archivo"
+                                onClick={() => {
+                                  // TODO: Implementar función de eliminación
+                                  console.log('Eliminar archivo', fichero.id);
+                                }}
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

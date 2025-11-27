@@ -68,16 +68,28 @@ export default function ComunidadesPage() {
     return response
   }, [])
 
-  // Función para obtener datos de la API
-  const fetchData = useCallback(async (page: number = 1) => {
+  // Función para obtener datos de la API con paginación del servidor
+  const fetchData = useCallback(async (page: number = 1, search: string = '') => {
     setIsLoading(true)
     try {
-      const endpoint = `/proyectos-comunidad/?page=${page}&page_size=${itemsPerPage}`
+      let endpoint
+      
+      // Usar endpoint diferente según si hay búsqueda o no
+      if (search.trim()) {
+        // Usar endpoint de búsqueda
+        endpoint = `/proyectos-comunidad/search/?q=${encodeURIComponent(search)}&page=${page}&page_size=${itemsPerPage}`
+      } else {
+        // Usar endpoint normal de listado
+        endpoint = `/proyectos-comunidad/?page=${page}&page_size=${itemsPerPage}`
+      }
+      
+      console.log('📡 [FETCH DATA] Endpoint:', endpoint)
       const response = await fetchIntranetData(endpoint)
       
       if (response.ok) {
         const data: ApiResponse = await response.json()
         if (data && Array.isArray(data.results)) {
+          console.log('✅ [FETCH DATA] Resultados obtenidos:', data.results.length)
           setItems(data.results)
           setTotalPages(Math.ceil(data.count / itemsPerPage))
           setTotalCount(data.count)
@@ -85,70 +97,48 @@ export default function ComunidadesPage() {
         } else {
           console.error('Los datos de la API no contienen un array en results', data)
           setItems([])
+          setTotalPages(0)
+          setTotalCount(0)
         }
       } else {
         console.error('Error en la respuesta de la API:', response.status)
         setItems([])
+        setTotalPages(0)
+        setTotalCount(0)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
       setItems([])
+      setTotalPages(0)
+      setTotalCount(0)
     } finally {
       setIsLoading(false)
     }
   }, [itemsPerPage, fetchIntranetData])
 
-  // Función para búsqueda de datos
-  const searchData = useCallback(async (page: number = 1) => {
-    if (!searchTerm.trim()) {
-      fetchData(page)
-      return
-    }
-    
-    setIsLoading(true)
-    try {
-      const endpoint = `/proyectos-comunidad/search/?q=${encodeURIComponent(searchTerm)}&page=${page}&page_size=${itemsPerPage}`
-      const response = await fetchIntranetData(endpoint)
-      
-      if (response.ok) {
-        const data: ApiResponse = await response.json()
-        if (data && Array.isArray(data.results)) {
-          setItems(data.results)
-          setTotalPages(Math.ceil(data.count / itemsPerPage))
-          setTotalCount(data.count)
-          setCurrentPage(page)
-        } else {
-          console.error('Los datos de la API no contienen un array en results', data)
-          setItems([])
-        }
-      } else {
-        console.error('Error en la respuesta de la API:', response.status)
-        setItems([])
-      }
-    } catch (error) {
-      console.error('Error searching data:', error)
-      setItems([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [searchTerm, itemsPerPage, fetchData, fetchIntranetData])
-
   // Efecto para cargar datos iniciales
   useEffect(() => {
     if (user?.profile?.token_intranet) {
       console.log('Cargando datos...')
-      fetchData()
+      fetchData(1, '')
     }
   }, [fetchData, user?.profile?.token_intranet])
+  
+  // Efecto para aplicar búsqueda cuando cambie el término de búsqueda (con debounce)
+  useEffect(() => {
+    if (user?.profile?.token_intranet) {
+      const timeoutId = setTimeout(() => {
+        fetchData(1, searchTerm)
+      }, 500) // Debounce de 500ms
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [searchTerm, user?.profile?.token_intranet, fetchData])
 
   // Función para cambiar página
   const changePage = (page: number) => {
     if (page > 0 && page <= totalPages) {
-      if (searchTerm.trim()) {
-        searchData(page)
-      } else {
-        fetchData(page)
-      }
+      fetchData(page, searchTerm)
     }
   }
 
@@ -181,22 +171,19 @@ export default function ComunidadesPage() {
 
   // Función para manejar búsqueda
   const handleSearch = () => {
-    setCurrentPage(1)
-    if (searchTerm.trim()) {
-      searchData(1)
-    } else {
-      fetchData(1)
-    }
+    fetchData(1, searchTerm)
   }
 
-  // Función para cambiar ordenamiento (client-side por ahora)
+  // Función para cambiar ordenamiento
   const handleSort = (field: SortField) => {
+    let newDirection: SortDirection = 'asc'
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
+      newDirection = sortDirection === 'asc' ? 'desc' : 'asc'
     }
+    setSortField(field)
+    setSortDirection(newDirection)
+    // TODO: Implementar ordenamiento en el servidor
+    fetchData(currentPage, searchTerm)
   }
 
   // Función para formatear fecha
@@ -293,7 +280,7 @@ export default function ComunidadesPage() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Buscar por razón social, CIF, comercial..."
+                    placeholder="Buscar por razón social, CIF, comercial, colaborador, fechas..."
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-500 focus:border-red-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}

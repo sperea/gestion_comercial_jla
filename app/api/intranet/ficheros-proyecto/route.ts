@@ -74,39 +74,6 @@ export async function GET(request: NextRequest) {
     console.log('📊 [INTRANET PROXY] Status respuesta intranet:', intranetResponse.status);
 
     if (!intranetResponse.ok) {
-      // Si el endpoint no existe en Django aún, devolver datos mock para desarrollo
-      if (intranetResponse.status === 404) {
-        console.log('⚠️ [INTRANET PROXY] Endpoint no encontrado, usando datos mock de ficheros');
-        
-        const mockData = {
-          count: 2,
-          results: [
-            {
-              id: 1,
-              proyecto: proyecto ? parseInt(proyecto) : 0,
-              nombre: "Plano_situacion_edificio.pdf",
-              descripcion: "Plano de situación del edificio para la póliza",
-              archivo: "/media/proyectos/3516/plano_situacion.pdf",
-              fecha_subida: "2025-11-20T10:30:00Z",
-              size: 2458624,
-              tipo: "pdf"
-            },
-            {
-              id: 2,
-              proyecto: proyecto ? parseInt(proyecto) : 0,
-              nombre: "Memoria_valorativa_inmueble.docx",
-              descripcion: "Memoria valorativa del inmueble para el seguro",
-              archivo: "/media/proyectos/3516/memoria_valorativa.docx",
-              fecha_subida: "2025-11-22T14:15:00Z",
-              size: 1847392,
-              tipo: "docx"
-            }
-          ]
-        };
-
-        return NextResponse.json(mockData);
-      }
-
       const errorText = await intranetResponse.text()
       console.log('❌ [INTRANET PROXY] Error en respuesta:', errorText);
       return NextResponse.json(

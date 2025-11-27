@@ -16,13 +16,25 @@ export const formatCurrency = (value: any, fallback: string = '-'): string => {
 
   // Si es string, verificar si es numérico
   if (typeof value === 'string') {
-    // Si ya contiene € o es texto claramente no numérico, devolverlo tal como está
-    if (value.includes('€') || value.includes('%') || isNaN(Number(value))) {
+    // Si ya contiene €, devolverlo tal como está
+    if (value.includes('€')) {
       return value;
     }
     
-    // Si es string pero numérico, intentar convertir
-    const numericValue = parseFloat(value);
+    // Si contiene % o es texto claramente no numérico, devolverlo tal como está
+    if (value.includes('%')) {
+      return value;
+    }
+    
+    // Si parece ser una cantidad monetaria formateada (contiene comas o puntos como separadores)
+    // y son solo números, comas y puntos, añadir el símbolo €
+    const cleanValue = value.replace(/\s/g, ''); // Quitar espacios
+    if (/^[\d.,]+$/.test(cleanValue)) {
+      return `${value} €`;
+    }
+    
+    // Si es string pero numérico (sin formatear), intentar convertir
+    const numericValue = parseFloat(value.replace(/,/g, '.'));
     if (!isNaN(numericValue)) {
       return `${numericValue.toLocaleString('es-ES', {
         minimumFractionDigits: 2,
