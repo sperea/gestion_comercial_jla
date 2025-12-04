@@ -39,6 +39,8 @@ interface EdificioResumen {
     otros: number
   }
   plantas: number
+  plantas_sobre_rasante: number
+  plantas_bajo_rasante: number
   escaleras: number
   bloques: number
   direccion: {
@@ -1117,6 +1119,18 @@ function EdificioDetallePageContent() {
                   <p className="text-sm text-gray-600">Plantas</p>
                   <p className="font-semibold">{edificioData.plantas || 0}</p>
                 </div>
+                {edificioData.plantas_sobre_rasante > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600">⬆️ Plantas sobre rasante</p>
+                    <p className="font-semibold">{edificioData.plantas_sobre_rasante} plantas</p>
+                  </div>
+                )}
+                {edificioData.plantas_bajo_rasante > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600">⬇️ Plantas bajo rasante</p>
+                    <p className="font-semibold">{edificioData.plantas_bajo_rasante} sótanos</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-gray-600">Escaleras</p>
                   <p className="font-semibold">{edificioData.escaleras || 0}</p>
