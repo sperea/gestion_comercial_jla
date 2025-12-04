@@ -1092,7 +1092,6 @@ function EdificioDetallePageContent() {
                 
                 {edificioData.direccion && (
                   <>
-                    <p className="text-xs text-gray-500 mb-1">Dirección catastral:</p>
                     <p className="text-sm text-gray-700">{construirDireccionCompleta(edificioData)}</p>
                   </>
                 )}
