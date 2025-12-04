@@ -1135,14 +1135,6 @@ function EdificioDetallePageContent() {
                   <p className="text-sm text-gray-600">Escaleras</p>
                   <p className="font-semibold">{edificioData.escaleras || 0}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Número de Bloques</p>
-                  <p className="font-semibold">{edificioData.bloques || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Número de Escaleras</p>
-                  <p className="font-semibold">{edificioData.escaleras}</p>
-                </div>
               </div>
             </div>
 
