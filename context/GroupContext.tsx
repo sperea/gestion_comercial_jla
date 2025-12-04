@@ -49,17 +49,24 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
         console.log('✅ [GroupContext] Grupos cargados:', response.data)
       } else {
         setUserGroups([])
-        setError(response.error || 'Error al obtener grupos')
-        // Si el error es de autenticación, no mostramos mensaje (el usuario no está logueado)
-        if (response.error !== 'No autenticado') {
+        // Si el error es de autenticación, no lo tratamos como error (usuario no logueado)
+        if (response.error === 'No autenticado' || response.error?.includes('401')) {
+          console.log('🔒 [GroupContext] Usuario no autenticado, no se cargan grupos')
+          setError(null) // No mostrar como error
+        } else {
+          setError(response.error || 'Error al obtener grupos')
           console.warn('⚠️ [GroupContext] Error al obtener grupos:', response.error)
         }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-      setError(errorMessage)
-      // Solo mostrar errores si no son de autenticación
-      if (!errorMessage.includes('401') && !errorMessage.includes('No autenticado')) {
+      
+      // Solo tratamos como error real si no es un problema de autenticación
+      if (errorMessage.includes('401') || errorMessage.includes('No autenticado')) {
+        console.log('🔒 [GroupContext] Error de autenticación, usuario no logueado')
+        setError(null) // No mostrar como error
+      } else {
+        setError(errorMessage)
         console.error('❌ [GroupContext] Error al cargar grupos:', error)
       }
       setUserGroups([])

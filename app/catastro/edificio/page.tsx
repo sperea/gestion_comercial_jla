@@ -238,9 +238,9 @@ function EdificioDetallePageContent() {
       setLoading(true)
       setError(null)
 
-      console.log('🏗️ Obteniendo datos del edificio para referencia:', refcat)
+      console.log('🏢 Obteniendo datos del edificio (endpoint optimizado) para referencia:', refcat)
 
-      const response = await fetch(`/api/catastro/edificio-detalle?refcat=${encodeURIComponent(refcat)}`, {
+      const response = await fetch(`/api/catastro/edificio-general?refcat=${encodeURIComponent(refcat)}`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -261,7 +261,7 @@ function EdificioDetallePageContent() {
       const data = await response.json()
       
       if (data.success && data.data) {
-        console.log('✅ Datos del edificio recibidos:', data)
+        console.log('✅ Datos generales del edificio cargados (endpoint optimizado - sin inmuebles):', data)
         console.log('📊 Tipo de datos:', typeof data.data)
         console.log('📋 Es array?:', Array.isArray(data.data))
         console.log('🔍 Estructura de data:', {

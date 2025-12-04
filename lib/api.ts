@@ -119,8 +119,13 @@ const getIntranetToken = async (): Promise<string | null> => {
   }
 }
 
-// Función helper para realizar requests con credenciales
+// Función helper para realizar requests con credenciales y manejo automático de renovación
 export async function fetchWithCredentials(url: string, options: RequestInit = {}) {
+  return await fetchWithCredentialsInternal(url, options, false)
+}
+
+// Función interna que maneja la lógica de autenticación y renovación
+async function fetchWithCredentialsInternal(url: string, options: RequestInit = {}, isRetry: boolean = false): Promise<Response> {
   const headers = new Headers(options.headers)
   
   // Para llamadas al backend Django, obtener token JWT desde las cookies HTTP-Only
@@ -157,7 +162,7 @@ export async function fetchWithCredentials(url: string, options: RequestInit = {
     }
   }
 
-  console.log(`📡 [API] ${options.method || 'GET'} ${url}`)
+  console.log(`📡 [API] ${options.method || 'GET'} ${url}${isRetry ? ' (RETRY)' : ''}`)
   console.log('📋 [API] Headers:', Object.fromEntries(headers.entries()))
 
   const response = await fetch(url, {
@@ -166,7 +171,33 @@ export async function fetchWithCredentials(url: string, options: RequestInit = {
     credentials: 'include'
   })
 
-  console.log(`📊 [API] Response status: ${response.status}`)
+  console.log(`📊 [API] Response status: ${response.status}${isRetry ? ' (RETRY)' : ''}`)
+  
+  // Si obtenemos 401 y no es un retry, intentar renovar token automáticamente
+  if (response.status === 401 && !isRetry && !url.includes('/api/auth/')) {
+    console.log('🔄 [API] Token expirado, intentando renovación automática...')
+    
+    try {
+      const refreshResponse = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      
+      if (refreshResponse.ok) {
+        console.log('✅ [API] Token renovado exitosamente, reintentando petición original...')
+        // Reintentar la petición original con el token renovado
+        return await fetchWithCredentialsInternal(url, options, true)
+      } else {
+        console.log('❌ [API] No se pudo renovar el token, redirigiendo al login...')
+        // Si no se puede renovar, limpiar sesión y redirigir
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 1000)
+      }
+    } catch (refreshError) {
+      console.error('❌ [API] Error durante renovación de token:', refreshError)
+    }
+  }
   
   return response
 }
