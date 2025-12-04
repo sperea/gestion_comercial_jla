@@ -43,6 +43,8 @@ interface EdificioResumen {
   plantas_bajo_rasante: number
   escaleras: number
   bloques: number
+  anyo_construccion: number | null
+  anyo_reforma: number | null
   direccion: {
     tipo_via: string
     nombre_via: string
@@ -50,7 +52,7 @@ interface EdificioResumen {
     municipio: string
     provincia: string
     cp: number
-  }
+  } | string
 }
 
 // Interfaz para inmueble individual del listado
@@ -201,6 +203,11 @@ function EdificioDetallePageContent() {
   const construirDireccionCompleta = useCallback((datos: EdificioResumen): string => {
     if (!datos.direccion) return ''
     
+    // Si la dirección ya es un string, devolverla directamente
+    if (typeof datos.direccion === 'string') {
+      return datos.direccion
+    }
+    
     const dir = datos.direccion
     const partes: string[] = []
     
@@ -343,7 +350,12 @@ function EdificioDetallePageContent() {
         let errorMessage = `Error ${response.status}: ${response.statusText}`
         try {
           const errorData = await response.json()
-          errorMessage = errorData.error || errorData.message || errorMessage
+          // Manejar errores específicos del backend
+          if (errorData.detail && errorData.detail.includes('sintaxis de entrada no es válida')) {
+            errorMessage = 'Error en el servidor: hay un problema con los datos del catastro. El equipo técnico ha sido notificado.'
+          } else {
+            errorMessage = errorData.error || errorData.message || errorData.detail || errorMessage
+          }
         } catch {
           // Si no es JSON, podría ser HTML (error de autenticación)
           const errorText = await response.text()
@@ -1091,9 +1103,12 @@ function EdificioDetallePageContent() {
                 </p>
                 
                 {edificioData.direccion && (
-                  <>
-                    <p className="text-sm text-gray-700">{construirDireccionCompleta(edificioData)}</p>
-                  </>
+                  <p className="text-xs text-gray-500">
+                    {typeof edificioData.direccion === 'string' 
+                      ? edificioData.direccion 
+                      : construirDireccionCompleta(edificioData)
+                    }
+                  </p>
                 )}
               </div>
               
@@ -1103,20 +1118,12 @@ function EdificioDetallePageContent() {
                   <p className="font-mono font-semibold">{edificioData.ref_catastral_base}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Superficie Total Construida</p>
-                  <p className="font-semibold">{edificioData.superficie_total?.toLocaleString() || '0'} m²</p>
-                </div>
-                <div>
                   <p className="text-sm text-gray-600">Total de Inmuebles</p>
                   <p className="font-semibold">{edificioData.total_inmuebles || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Superficie Total</p>
-                  <p className="font-semibold">{parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Plantas</p>
-                  <p className="font-semibold">{edificioData.plantas || 0}</p>
+                  <p className="text-sm text-gray-600">Superficie Total Construida</p>
+                  <p className="font-semibold">{edificioData.superficie_total?.toLocaleString() || '0'} m²</p>
                 </div>
                 {edificioData.plantas_sobre_rasante > 0 && (
                   <div>
@@ -1134,6 +1141,18 @@ function EdificioDetallePageContent() {
                   <p className="text-sm text-gray-600">Escaleras</p>
                   <p className="font-semibold">{edificioData.escaleras || 0}</p>
                 </div>
+                {edificioData.anyo_construccion && (
+                  <div>
+                    <p className="text-sm text-gray-600">🏗️ Año de construcción</p>
+                    <p className="font-semibold">{edificioData.anyo_construccion}</p>
+                  </div>
+                )}
+                {edificioData.anyo_reforma && (
+                  <div>
+                    <p className="text-sm text-gray-600">🔨 Año de reforma</p>
+                    <p className="font-semibold">{edificioData.anyo_reforma}</p>
+                  </div>
+                )}
               </div>
             </div>
 
