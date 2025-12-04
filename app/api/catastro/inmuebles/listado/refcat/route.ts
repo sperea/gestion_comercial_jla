@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🏠 Listado inmuebles por refcat - Parámetros recibidos:', { refcat })
     console.log('🌐 URL completa de la API:', apiUrl)
+    console.log('🔧 buildUrl params:', params)
     console.log('📤 Headers de la petición:', {
       'Authorization': `Bearer ${accessToken.value.substring(0, 20)}...`,
       'Content-Type': 'application/json'
@@ -56,7 +57,28 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    const data = await response.json()
+    console.log('📡 Respuesta del backend:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      headers: Object.fromEntries(response.headers.entries())
+    })
+
+    let data: any
+    const contentType = response.headers.get('content-type')
+    
+    try {
+      if (contentType?.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const textData = await response.text()
+        console.error('❌ Respuesta no es JSON:', { contentType, textData: textData.substring(0, 500) })
+        data = { error: 'Respuesta no es JSON válido', details: textData }
+      }
+    } catch (parseError) {
+      console.error('❌ Error parseando respuesta:', parseError)
+      data = { error: 'Error parseando respuesta del servidor' }
+    }
     
     console.log('📋 Respuesta de Django:', {
       status: response.status,
@@ -67,6 +89,23 @@ export async function GET(request: NextRequest) {
     console.log('📊 Datos recibidos:', data)
 
     if (!response.ok) {
+      console.error('❌ Error en la respuesta del backend:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+        data: data
+      })
+      
+      // Manejar errores específicos del backend SQL
+      let friendlyError = `Error del servidor: ${response.status}`
+      if (data?.detail && typeof data.detail === 'string') {
+        if (data.detail.includes('no existe la columna')) {
+          friendlyError = 'Error en la base de datos del catastro. El equipo técnico ha sido notificado.'
+        } else if (data.detail.includes('sintaxis de entrada no es válida')) {
+          friendlyError = 'Error en el procesamiento de datos del catastro. El equipo técnico ha sido notificado.'
+        }
+      }
+      
       // Si es error 401, intentar refrescar el token
       if (response.status === 401 && refreshToken) {
         try {
@@ -126,8 +165,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { 
           success: false, 
-          error: `Error del servidor: ${response.status}`,
-          details: data 
+          error: friendlyError,
+          technical_details: process.env.NODE_ENV === 'development' ? data : undefined
         },
         { status: response.status }
       )
@@ -139,12 +178,20 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error en la búsqueda de listado de inmuebles por refcat:', error)
+    console.error('💥 Error en la búsqueda de listado de inmuebles por refcat:', error)
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack')
+    console.error('💥 Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      cause: error instanceof Error ? error.cause : undefined
+    })
+    
     return NextResponse.json(
       { 
         success: false, 
         error: 'Error interno del servidor',
-        details: error instanceof Error ? error.message : 'Error desconocido'
+        details: error instanceof Error ? error.message : 'Error desconocido',
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     )

@@ -87,6 +87,7 @@ function EdificioDetallePageContent() {
   const [loadingInmuebles, setLoadingInmuebles] = useState(false)
   const [errorInmuebles, setErrorInmuebles] = useState<string | null>(null)
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [sortConfig, setSortConfig] = useState<{
     key: keyof InmuebleDetalle | null
     direction: 'asc' | 'desc'
@@ -337,7 +338,12 @@ function EdificioDetallePageContent() {
       
       console.log('🏠 Cargando inmuebles para referencia:', refCatastral)
       
-      const response = await fetch(`/api/catastro/inmuebles/listado/refcat?ref=${encodeURIComponent(refCatastral)}`, {
+      const url = `/api/catastro/inmuebles/listado/refcat?ref=${encodeURIComponent(refCatastral)}`
+      console.log('🔗 URL del frontend que se va a llamar:', url)
+      console.log('🌍 window.location.origin:', window.location.origin)
+      console.log('🌐 URL completa:', `${window.location.origin}${url}`)
+      
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -351,8 +357,10 @@ function EdificioDetallePageContent() {
         try {
           const errorData = await response.json()
           // Manejar errores específicos del backend
-          if (errorData.detail && errorData.detail.includes('sintaxis de entrada no es válida')) {
-            errorMessage = 'Error en el servidor: hay un problema con los datos del catastro. El equipo técnico ha sido notificado.'
+          if (errorData.detail && errorData.detail.includes('no existe la columna')) {
+            errorMessage = '⚠️ Error en la base de datos del catastro. El equipo técnico ha sido notificado y está trabajando para solucionarlo.'
+          } else if (errorData.detail && errorData.detail.includes('sintaxis de entrada no es válida')) {
+            errorMessage = '⚠️ Error en el servidor: hay un problema con los datos del catastro. El equipo técnico ha sido notificado.'
           } else {
             errorMessage = errorData.error || errorData.message || errorData.detail || errorMessage
           }
@@ -472,6 +480,26 @@ function EdificioDetallePageContent() {
   const clearSelection = () => {
     setSelectedInmuebles(new Set())
     setLastSelectedIndex(null)
+  }
+
+  // Funciones para manejar la expansión de grupos
+  const toggleGroup = (categoria: string) => {
+    const newExpandedGroups = new Set(expandedGroups)
+    if (expandedGroups.has(categoria)) {
+      newExpandedGroups.delete(categoria)
+    } else {
+      newExpandedGroups.add(categoria)
+    }
+    setExpandedGroups(newExpandedGroups)
+  }
+
+  const expandAllGroups = () => {
+    const allCategories = Object.keys(getInmueblesAgrupados())
+    setExpandedGroups(new Set(allCategories))
+  }
+
+  const collapseAllGroups = () => {
+    setExpandedGroups(new Set())
   }
 
   // Función para exportar selección a Excel
@@ -891,9 +919,112 @@ function EdificioDetallePageContent() {
     setSortConfig({ key, direction })
   }
 
+  // Función para categorizar inmuebles por tipo de uso con iconos específicos
+  const categorizarInmueble = (uso_principal: string, uso_descripcion: string) => {
+    const codigo = uso_principal?.toUpperCase() || ''
+    const descripcion = uso_descripcion || ''
+    
+    // 🏠 RESIDENCIAL
+    if (codigo === 'V' || descripcion.toLowerCase().includes('residencial') || descripcion.toLowerCase().includes('vivienda')) {
+      return { categoria: '🏠 RESIDENCIAL', subcategoria: 'Residencial', orden: 1 }
+    }
+    
+    // 🚗 APARCAMIENTOS Y TRASTEROS
+    if (codigo === 'AAP') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento', orden: 2 }
+    if (codigo === 'AAV') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento vinculado a vivienda', orden: 2 }
+    if (codigo === 'AAL') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Almacén / Trastero', orden: 2 }
+    if (codigo === 'A') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Trastero / Almacén (genérico)', orden: 2 }
+    
+    // Mapear descripciones específicas a trasteros y aparcamientos
+    if (descripcion.toLowerCase().includes('trastero') || descripcion.toLowerCase().includes('almacén')) {
+      return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Trastero', orden: 2 }
+    }
+    if (descripcion.toLowerCase().includes('estacionamiento') || descripcion.toLowerCase().includes('aparcamiento') || descripcion.toLowerCase().includes('garaje')) {
+      return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento', orden: 2 }
+    }
+    
+    // 🏬 COMERCIAL
+    if (codigo === 'CCE') return { categoria: '🏬 COMERCIAL', subcategoria: 'Local comercial', orden: 3 }
+    if (codigo === 'CSP') return { categoria: '🏬 COMERCIAL', subcategoria: 'Supermercado', orden: 3 }
+    if (codigo === 'CPA') return { categoria: '🏬 COMERCIAL', subcategoria: 'Comercio al por mayor', orden: 3 }
+    if (codigo === 'CFR') return { categoria: '🏬 COMERCIAL', subcategoria: 'Farmacia', orden: 3 }
+    if (codigo === 'CGL') return { categoria: '🏬 COMERCIAL', subcategoria: 'Galería comercial', orden: 3 }
+    if (codigo.startsWith('C')) return { categoria: '🏬 COMERCIAL', subcategoria: 'Comercio', orden: 3 }
+    
+    // 🏢 OFICINAS
+    if (codigo === 'O' || codigo.startsWith('O0')) return { categoria: '🏢 OFICINAS', subcategoria: 'Oficinas / Despachos profesionales', orden: 4 }
+    
+    // 🏭 INDUSTRIAL
+    if (codigo === 'IEL') return { categoria: '🏭 INDUSTRIAL', subcategoria: 'Instalación eléctrica', orden: 5 }
+    if (codigo === 'IAG') return { categoria: '🏭 INDUSTRIAL', subcategoria: 'Agropecuaria', orden: 5 }
+    if (codigo === 'IMT') return { categoria: '🏭 INDUSTRIAL', subcategoria: 'Industria metálica', orden: 5 }
+    if (codigo.startsWith('I')) return { categoria: '🏭 INDUSTRIAL', subcategoria: 'Industrial', orden: 5 }
+    
+    // 🏊 EQUIPAMIENTOS / DEPORTIVO
+    if (codigo === 'KPS') return { categoria: '🏊 EQUIPAMIENTOS / DEPORTIVO', subcategoria: 'Piscina', orden: 6 }
+    if (codigo === 'KDP' || codigo === 'KPL' || codigo === 'KES') return { categoria: '🏊 EQUIPAMIENTOS / DEPORTIVO', subcategoria: 'Instalación deportiva', orden: 6 }
+    if (codigo.startsWith('K')) return { categoria: '🏊 EQUIPAMIENTOS / DEPORTIVO', subcategoria: 'Deportivo', orden: 6 }
+    
+    // 🏛️ PÚBLICO / DOTACIONAL
+    if (codigo === 'PAA' || codigo === 'PAD' || codigo === 'PCD') return { categoria: '🏛️ PÚBLICO / DOTACIONAL', subcategoria: 'Edificio público', orden: 7 }
+    if (codigo.startsWith('P')) return { categoria: '🏛️ PÚBLICO / DOTACIONAL', subcategoria: 'Uso público / Administrativo', orden: 7 }
+    
+    // 🛐 RELIGIOSO
+    if (codigo.startsWith('R')) return { categoria: '🛐 RELIGIOSO', subcategoria: 'Edificio religioso', orden: 8 }
+    
+    // 🏨 TURÍSTICO / HOSTELERÍA
+    if (codigo.startsWith('GR')) return { categoria: '🏨 TURÍSTICO / HOSTELERÍA', subcategoria: 'Hostelería', orden: 9 }
+    if (codigo.startsWith('GS')) return { categoria: '🏨 TURÍSTICO / HOSTELERÍA', subcategoria: 'Hostelería', orden: 9 }
+    if (codigo.startsWith('G')) return { categoria: '🏨 TURÍSTICO / HOSTELERÍA', subcategoria: 'Hotel / Hostelería / Restauración', orden: 9 }
+    
+    // 🧱 SUELO
+    if (codigo === 'M') return { categoria: '🧱 SUELO', subcategoria: 'Suelo sin edificar', orden: 10 }
+    
+    // ❓ SIN USO DETALLADO
+    return { categoria: '❓ SIN USO DETALLADO', subcategoria: 'Otros usos', orden: 11 }
+  }
+
+  // Función para agrupar inmuebles por categoría
+  const getInmueblesAgrupados = () => {
+    const agrupados = inmuebles.reduce((acc, inmueble) => {
+      const { categoria, subcategoria } = categorizarInmueble(inmueble.uso_principal, inmueble.uso_descripcion)
+      
+      if (!acc[categoria]) {
+        acc[categoria] = []
+      }
+      acc[categoria].push({ ...inmueble, subcategoria })
+      
+      return acc
+    }, {} as Record<string, Array<InmuebleDetalle & { subcategoria: string }>>)
+    
+    // Ordenar por la lógica de categorización especificada
+    const categoriasOrdenadas = Object.keys(agrupados).sort((a, b) => {
+      const ordenA = categorizarInmueble(agrupados[a][0].uso_principal, agrupados[a][0].uso_descripcion).orden
+      const ordenB = categorizarInmueble(agrupados[b][0].uso_principal, agrupados[b][0].uso_descripcion).orden
+      return ordenA - ordenB
+    })
+    
+    const resultado: Record<string, Array<InmuebleDetalle & { subcategoria: string }>> = {}
+    categoriasOrdenadas.forEach(categoria => {
+      resultado[categoria] = agrupados[categoria]
+    })
+    
+    return resultado
+  }
+
   // Función para obtener los inmuebles ordenados
   const getSortedInmuebles = () => {
-    if (!sortConfig.key) return inmuebles
+    // Si no hay configuración de orden, devolver agrupados por categoría
+    if (!sortConfig.key) {
+      const agrupados = getInmueblesAgrupados()
+      const resultado: (InmuebleDetalle & { subcategoria?: string })[] = []
+      
+      Object.values(agrupados).forEach(grupo => {
+        resultado.push(...grupo)
+      })
+      
+      return resultado
+    }
 
     const sortedInmuebles = [...inmuebles].sort((a, b) => {
       const aValue = a[sortConfig.key!]
@@ -925,58 +1056,45 @@ function EdificioDetallePageContent() {
   const getDesgloseSeleccionados = () => {
     const desglose: Record<string, { cantidad: number; superficie: number; color: string; icon: string }> = {}
     
-    // Mapeo de iconos y colores por tipo de uso
-    const tiposUso = {
-      'Residencial': { color: 'bg-blue-100 text-blue-800', icon: '🏠' },
-      'Comercial': { color: 'bg-green-100 text-green-800', icon: '🏪' },
-      'Oficinas': { color: 'bg-purple-100 text-purple-800', icon: '🏢' },
-      'Industrial': { color: 'bg-orange-100 text-orange-800', icon: '🏭' },
-      'Almacén': { color: 'bg-gray-100 text-gray-800', icon: '🚗' },
-      'Estacionamiento': { color: 'bg-gray-100 text-gray-800', icon: '🚗' },
-      'Deportivo': { color: 'bg-indigo-100 text-indigo-800', icon: '🏃' },
-      'Ocio': { color: 'bg-pink-100 text-pink-800', icon: '🍽️' },
-      'Cultural': { color: 'bg-yellow-100 text-yellow-800', icon: '🎭' },
+    // Mapeo de colores e iconos por categoría
+    const configPorCategoria = {
+      '🏠 RESIDENCIAL': { color: 'bg-blue-100 text-blue-800 border-blue-300', icon: '🏠' },
+      '🚗 APARCAMIENTOS Y TRASTEROS': { color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🚗' },
+      '🏬 COMERCIAL': { color: 'bg-green-100 text-green-800 border-green-300', icon: '🏬' },
+      '🏢 OFICINAS': { color: 'bg-purple-100 text-purple-800 border-purple-300', icon: '🏢' },
+      '🏭 INDUSTRIAL': { color: 'bg-orange-100 text-orange-800 border-orange-300', icon: '🏭' },
+      '🏊 EQUIPAMIENTOS / DEPORTIVO': { color: 'bg-indigo-100 text-indigo-800 border-indigo-300', icon: '🏊' },
+      '🏛️ PÚBLICO / DOTACIONAL': { color: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '🏛️' },
+      '🛐 RELIGIOSO': { color: 'bg-pink-100 text-pink-800 border-pink-300', icon: '🛐' },
+      '🏨 TURÍSTICO / HOSTELERÍA': { color: 'bg-red-100 text-red-800 border-red-300', icon: '🏨' },
+      '🧱 SUELO': { color: 'bg-stone-100 text-stone-800 border-stone-300', icon: '🧱' },
+      '❓ SIN USO DETALLADO': { color: 'bg-slate-100 text-slate-800 border-slate-300', icon: '❓' }
     }
 
     Array.from(selectedInmuebles).forEach(index => {
       const inmueble = inmuebles[index]
       if (inmueble) {
-        let tipoUso = inmueble.uso_descripcion || 'Otros'
+        const { categoria } = categorizarInmueble(inmueble.uso_principal, inmueble.uso_descripcion)
         
-        // Simplificar y categorizar tipos de uso
-        if (tipoUso.toLowerCase().includes('vivienda') || tipoUso.toLowerCase().includes('residencial')) {
-          tipoUso = 'Residencial'
-        } else if (tipoUso.toLowerCase().includes('comercial') || tipoUso.toLowerCase().includes('tienda')) {
-          tipoUso = 'Comercial'
-        } else if (tipoUso.toLowerCase().includes('oficina')) {
-          tipoUso = 'Oficinas'
-        } else if (tipoUso.toLowerCase().includes('industrial')) {
-          tipoUso = 'Industrial'
-        } else if (tipoUso.toLowerCase().includes('almacén') || tipoUso.toLowerCase().includes('almacen')) {
-          tipoUso = 'Almacén'
-        } else if (tipoUso.toLowerCase().includes('estacionamiento') || tipoUso.toLowerCase().includes('garaje')) {
-          tipoUso = 'Estacionamiento'
-        }
-        
-        if (!desglose[tipoUso]) {
-          const tipoConfig = tiposUso[tipoUso as keyof typeof tiposUso] || { color: 'bg-gray-100 text-gray-800', icon: '📋' }
-          desglose[tipoUso] = {
+        if (!desglose[categoria]) {
+          const config = configPorCategoria[categoria as keyof typeof configPorCategoria] || 
+                        { color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '📋' }
+          
+          desglose[categoria] = {
             cantidad: 0,
             superficie: 0,
-            color: tipoConfig.color,
-            icon: tipoConfig.icon
+            color: config.color,
+            icon: config.icon
           }
         }
         
-        desglose[tipoUso].cantidad += 1
-        desglose[tipoUso].superficie += parseFloat(inmueble.superficie_m2 || '0')
+        desglose[categoria].cantidad += 1
+        desglose[categoria].superficie += parseFloat(inmueble.superficie_m2 || '0')
       }
     })
-    
-    return desglose
-  }
 
-  // Componente para encabezados de columna ordenables
+    return desglose
+  }  // Componente para encabezados de columna ordenables
   const SortableHeader = ({ 
     children, 
     sortKey, 
@@ -1204,17 +1322,17 @@ function EdificioDetallePageContent() {
 
         {/* Listado Detallado de Inmuebles */}
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mt-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Listado Detallado de Inmuebles</h2>
-            {inmuebles.length === 0 && !loadingInmuebles && !errorInmuebles && (
+          {inmuebles.length === 0 && !loadingInmuebles && !errorInmuebles && (
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Listado Detallado de Inmuebles</h2>
               <button
                 onClick={cargarInmuebles}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Cargar Inmuebles
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {loadingInmuebles && (
             <div className="text-center py-8">
@@ -1324,10 +1442,9 @@ function EdificioDetallePageContent() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                       {Object.entries(getDesgloseSeleccionados()).map(([tipo, datos]) => (
                         <div key={tipo} className={`p-3 rounded-lg border-2 ${datos.color}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <h6 className="font-semibold flex items-center gap-2 text-sm">
-                              <span className="text-lg">{datos.icon}</span>
-                              <span className="truncate">{tipo}</span>
+                          <div className="mb-2">
+                            <h6 className="font-semibold text-sm break-words leading-tight">
+                              {tipo}
                             </h6>
                           </div>
                           <div className="space-y-1 text-xs">
@@ -1347,68 +1464,219 @@ function EdificioDetallePageContent() {
                 </div>
               )}
 
-              {/* Tabla de inmuebles */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="p-3 text-left">
-                        <input
-                          type="checkbox"
-                          checked={selectedInmuebles.size === sortedInmuebles.length && sortedInmuebles.length > 0}
-                          onChange={() => selectedInmuebles.size === sortedInmuebles.length ? clearSelection() : selectAll()}
-                          className="rounded border-gray-300"
-                        />
-                      </th>
-                      <SortableHeader sortKey="uso_descripcion">Uso</SortableHeader>
-                      <SortableHeader sortKey="bloque">Bloque</SortableHeader>
-                      <SortableHeader sortKey="escalera">Escalera</SortableHeader>
-                      <SortableHeader sortKey="planta">Planta</SortableHeader>
-                      <SortableHeader sortKey="puerta">Puerta</SortableHeader>
-                      <SortableHeader sortKey="superficie_m2" className="p-3 text-right font-semibold text-gray-700">Superficie</SortableHeader>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {sortedInmuebles.map((inmueble, sortedIndex) => {
-                      // Encontrar el índice original del inmueble en la lista sin ordenar
+              {/* Controles para expandir/colapsar todos los grupos */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Listado Detallado de Inmuebles</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={expandAllGroups}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                  >
+                    Expandir Todo
+                  </button>
+                  <button
+                    onClick={collapseAllGroups}
+                    className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    Colapsar Todo
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista de inmuebles agrupados por categorías */}
+              <div className="space-y-4">
+                {Object.entries(getInmueblesAgrupados()).map(([categoria, inmueblesList]) => {
+                  const isExpanded = expandedGroups.has(categoria)
+                  const superficieTotal = inmueblesList.reduce((total, inmueble) => 
+                    total + parseFloat(inmueble.superficie_m2 || '0'), 0
+                  )
+                  
+                  // Calcular cuántos inmuebles de esta categoría están seleccionados
+                  const seleccionadosEnCategoria = inmueblesList.filter(inmueble => {
+                    const originalIndex = inmuebles.findIndex(item => 
+                      item.ref_catastral === inmueble.ref_catastral && 
+                      item.num_bien === inmueble.num_bien
+                    )
+                    return selectedInmuebles.has(originalIndex)
+                  }).length
+                  
+                  // Calcular superficie de los seleccionados
+                  const superficieSeleccionada = inmueblesList
+                    .filter(inmueble => {
                       const originalIndex = inmuebles.findIndex(item => 
                         item.ref_catastral === inmueble.ref_catastral && 
                         item.num_bien === inmueble.num_bien
                       )
-                      return (
-                        <tr 
-                          key={`${inmueble.ref_catastral}-${inmueble.num_bien}`}
-                          className={`hover:bg-gray-50 cursor-pointer transition-colors select-none ${
-                            selectedInmuebles.has(originalIndex) ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                          }`}
-                          onClick={(e) => handleSelection(originalIndex, sortedIndex, e)}
-                        >
-                          <td className="p-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedInmuebles.has(originalIndex)}
-                              onChange={() => toggleSelection(originalIndex)}
-                              className="rounded border-gray-300"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </td>
-                          <td className="p-3 text-gray-600">
-                            <span className="inline-block px-2 py-1 text-xs bg-gray-100 rounded-full">
-                              {inmueble.uso_descripcion}
-                            </span>
-                          </td>
-                          <td className="p-3 text-gray-600">{inmueble.bloque || '-'}</td>
-                          <td className="p-3 text-gray-600">{inmueble.escalera || '-'}</td>
-                          <td className="p-3 text-gray-600">{inmueble.planta || '-'}</td>
-                          <td className="p-3 text-gray-600">{inmueble.puerta || '-'}</td>
-                          <td className="p-3 text-right font-medium text-gray-900">
-                            {parseFloat(inmueble.superficie_m2 || '0').toLocaleString()} m²
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                      return selectedInmuebles.has(originalIndex)
+                    })
+                    .reduce((total, inmueble) => total + parseFloat(inmueble.superficie_m2 || '0'), 0)
+                  
+                  return (
+                    <div key={categoria} className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                      {/* Cabecera clickeable de categoría */}
+                      <div 
+                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => toggleGroup(categoria)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <svg 
+                              className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                                isExpanded ? 'rotate-90' : ''
+                              }`} 
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {categoria}
+                            </h3>
+                          </div>
+                        </div>
+                        
+                        {/* Resumen compacto con información de selección */}
+                        <div className="flex items-center gap-6 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{inmueblesList.length}</span>
+                            <span>{inmueblesList.length === 1 ? 'inmueble' : 'inmuebles'}</span>
+                            {seleccionadosEnCategoria > 0 && (
+                              <span className="text-xs text-green-600 font-medium">
+                                ({seleccionadosEnCategoria} seleccionado{seleccionadosEnCategoria === 1 ? '' : 's'})
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900">{superficieTotal.toLocaleString()}</span>
+                            <span>m²</span>
+                            {superficieSeleccionada > 0 && (
+                              <span className="text-xs text-green-600 font-medium">
+                                ({superficieSeleccionada.toLocaleString()}m² selec.)
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {isExpanded ? 'Clic para colapsar' : 'Clic para expandir'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Contenido desplegable */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-200">
+                          {/* Checkbox para seleccionar toda la categoría */}
+                          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={inmueblesList.every(inmueble => {
+                                  const originalIndex = inmuebles.findIndex(item => 
+                                    item.ref_catastral === inmueble.ref_catastral && 
+                                    item.num_bien === inmueble.num_bien
+                                  )
+                                  return selectedInmuebles.has(originalIndex)
+                                })}
+                                onChange={() => {
+                                  const todosSeleccionados = inmueblesList.every(inmueble => {
+                                    const originalIndex = inmuebles.findIndex(item => 
+                                      item.ref_catastral === inmueble.ref_catastral && 
+                                      item.num_bien === inmueble.num_bien
+                                    )
+                                    return selectedInmuebles.has(originalIndex)
+                                  })
+                                  
+                                  if (todosSeleccionados) {
+                                    // Deseleccionar todos de esta categoría
+                                    const newSelection = new Set(selectedInmuebles)
+                                    inmueblesList.forEach(inmueble => {
+                                      const originalIndex = inmuebles.findIndex(item => 
+                                        item.ref_catastral === inmueble.ref_catastral && 
+                                        item.num_bien === inmueble.num_bien
+                                      )
+                                      newSelection.delete(originalIndex)
+                                    })
+                                    setSelectedInmuebles(newSelection)
+                                  } else {
+                                    // Seleccionar todos de esta categoría
+                                    const newSelection = new Set(selectedInmuebles)
+                                    inmueblesList.forEach(inmueble => {
+                                      const originalIndex = inmuebles.findIndex(item => 
+                                        item.ref_catastral === inmueble.ref_catastral && 
+                                        item.num_bien === inmueble.num_bien
+                                      )
+                                      if (originalIndex !== -1) newSelection.add(originalIndex)
+                                    })
+                                    setSelectedInmuebles(newSelection)
+                                  }
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              <span className="text-sm text-gray-700">
+                                Seleccionar/deseleccionar todos los inmuebles de esta categoría
+                              </span>
+                            </label>
+                          </div>
+
+                          {/* Tabla de inmuebles */}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="p-3 text-left font-medium text-gray-700">Selección</th>
+                                  <th className="p-3 text-left font-medium text-gray-700">Tipo</th>
+                                  <th className="p-3 text-left font-medium text-gray-700">Bloque</th>
+                                  <th className="p-3 text-left font-medium text-gray-700">Escalera</th>
+                                  <th className="p-3 text-left font-medium text-gray-700">Planta</th>
+                                  <th className="p-3 text-left font-medium text-gray-700">Puerta</th>
+                                  <th className="p-3 text-right font-medium text-gray-700">Superficie</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {inmueblesList.map((inmueble, index) => {
+                                  const originalIndex = inmuebles.findIndex(item => 
+                                    item.ref_catastral === inmueble.ref_catastral && 
+                                    item.num_bien === inmueble.num_bien
+                                  )
+                                  return (
+                                    <tr 
+                                      key={`${inmueble.ref_catastral}-${inmueble.num_bien}`}
+                                      className={`hover:bg-gray-50 cursor-pointer transition-colors select-none ${
+                                        selectedInmuebles.has(originalIndex) ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                                      }`}
+                                      onClick={(e) => handleSelection(originalIndex, index, e)}
+                                    >
+                                      <td className="p-3">
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedInmuebles.has(originalIndex)}
+                                          onChange={() => toggleSelection(originalIndex)}
+                                          className="rounded border-gray-300"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      </td>
+                                      <td className="p-3 text-gray-600">
+                                        <span className="inline-block px-2 py-1 text-xs bg-gray-100 rounded-full">
+                                          {inmueble.subcategoria}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 text-gray-600">{inmueble.bloque || '-'}</td>
+                                      <td className="p-3 text-gray-600">{inmueble.escalera || '-'}</td>
+                                      <td className="p-3 text-gray-600">{inmueble.planta || '-'}</td>
+                                      <td className="p-3 text-gray-600">{inmueble.puerta || '-'}</td>
+                                      <td className="p-3 text-right font-medium text-gray-900">
+                                        {parseFloat(inmueble.superficie_m2 || '0').toLocaleString()} m²
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </>
           )}
