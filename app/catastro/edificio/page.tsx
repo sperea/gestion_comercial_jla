@@ -1360,13 +1360,12 @@ function EdificioDetallePageContent() {
                           className="rounded border-gray-300"
                         />
                       </th>
-                      <SortableHeader sortKey="num_bien">Nº Bien</SortableHeader>
                       <SortableHeader sortKey="uso_descripcion">Uso</SortableHeader>
+                      <SortableHeader sortKey="bloque">Bloque</SortableHeader>
                       <SortableHeader sortKey="escalera">Escalera</SortableHeader>
                       <SortableHeader sortKey="planta">Planta</SortableHeader>
                       <SortableHeader sortKey="puerta">Puerta</SortableHeader>
                       <SortableHeader sortKey="superficie_m2" className="p-3 text-right font-semibold text-gray-700">Superficie</SortableHeader>
-                      <SortableHeader sortKey="ano_construccion">Año Const.</SortableHeader>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -1393,19 +1392,18 @@ function EdificioDetallePageContent() {
                               onClick={(e) => e.stopPropagation()}
                             />
                           </td>
-                          <td className="p-3 font-medium text-gray-900">{inmueble.num_bien}</td>
                           <td className="p-3 text-gray-600">
                             <span className="inline-block px-2 py-1 text-xs bg-gray-100 rounded-full">
                               {inmueble.uso_descripcion}
                             </span>
                           </td>
+                          <td className="p-3 text-gray-600">{inmueble.bloque || '-'}</td>
                           <td className="p-3 text-gray-600">{inmueble.escalera || '-'}</td>
                           <td className="p-3 text-gray-600">{inmueble.planta || '-'}</td>
                           <td className="p-3 text-gray-600">{inmueble.puerta || '-'}</td>
                           <td className="p-3 text-right font-medium text-gray-900">
                             {parseFloat(inmueble.superficie_m2 || '0').toLocaleString()} m²
                           </td>
-                          <td className="p-3 text-gray-600">{inmueble.ano_construccion}</td>
                         </tr>
                       )
                     })}
