@@ -10,14 +10,24 @@ const MapaUbicacion = dynamic(() => import('./MapaUbicacion'), {
   ssr: false,
   loading: () => <div className="h-full flex items-center justify-center bg-gray-100 rounded">Cargando mapa...</div>
 }) as React.ComponentType<{
-  coord_x: string
-  coord_y: string  
+  coord_wgs84: {
+    lat: number
+    lng: number
+    zoom_level: number
+  } | null
   ref_catastral: string
 }>
 
 // Interfaz para el resumen del edificio según API (nuevo formato del backend)
 interface EdificioResumen {
   ref_catastral_base: string
+  coord_x: string | null
+  coord_y: string | null
+  coord_wgs84: {
+    lat: number
+    lng: number
+    zoom_level: number
+  } | null
   total_inmuebles: number
   superficie_total: number
   distribucion: {
@@ -39,15 +49,6 @@ interface EdificioResumen {
     provincia: string
     cp: number
   }
-  // Coordenadas opcionales
-  coord_x?: string
-  coord_y?: string
-  coordX?: string
-  coordY?: string
-  x?: string
-  y?: string
-  coordenadas?: any
-  ubicacion?: any
 }
 
 // Interfaz para inmueble individual del listado
@@ -284,16 +285,9 @@ function EdificioDetallePageContent() {
         
         console.log('📦 Datos reales del edificio:', datosReales)
         console.log('📊 Distribución en datos reales:', datosReales?.distribucion)
-        console.log('🔍 Propiedades disponibles en datosReales:', datosReales ? Object.keys(datosReales) : 'no data')
-        console.log('🔍 ¿Tiene coordenadas?:', {
+        console.log('🗺️ Coordenadas del edificio:', {
           coord_x: datosReales?.coord_x,
-          coord_y: datosReales?.coord_y,
-          coordX: datosReales?.coordX,
-          coordY: datosReales?.coordY,
-          x: datosReales?.x,
-          y: datosReales?.y,
-          coordenadas: datosReales?.coordenadas,
-          ubicacion: datosReales?.ubicacion
+          coord_y: datosReales?.coord_y
         })
         
         // Construir la dirección completa si existe
@@ -1143,8 +1137,7 @@ function EdificioDetallePageContent() {
               <h2 className="text-xl font-bold text-gray-900 mb-4">📍 Ubicación</h2>
               <div className="h-80">
                 <MapaUbicacion 
-                  coord_x={edificioData.coord_x || '44000000'} // Centro Madrid por defecto
-                  coord_y={edificioData.coord_y || '447400000'} // Centro Madrid por defecto
+                  coord_wgs84={edificioData.coord_wgs84}
                   ref_catastral={edificioData.ref_catastral_base}
                 />
               </div>

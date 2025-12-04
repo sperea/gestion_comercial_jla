@@ -5,41 +5,15 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 interface MapaUbicacionProps {
-  coord_x: string
-  coord_y: string
+  coord_wgs84: {
+    lat: number
+    lng: number
+    zoom_level: number
+  } | null
   ref_catastral: string
 }
 
-// Función para convertir coordenadas UTM ETRS89 zona 30N a lat/lng
-function utmToLatLng(x: number, y: number): [number, number] {
-  // Conversión simplificada para coordenadas UTM zona 30N (España)
-  // Basada en puntos de referencia conocidos de Madrid
-  
-  // Para Madrid, las coordenadas aproximadas son:
-  // Centro de Madrid: UTM X≈440000, Y≈4474000 → lat≈40.4168, lng≈-3.7038
-  
-  // Factores de conversión aproximados para la zona de Madrid
-  const latFactor = 1 / 111320; // metros por grado de latitud
-  const lngFactor = 1 / (111320 * Math.cos(40.4 * Math.PI / 180)); // metros por grado de longitud
-  
-  // Punto de referencia (centro aproximado de Madrid)
-  const refX = 440000;
-  const refY = 4474000;
-  const refLat = 40.4168;
-  const refLng = -3.7038;
-  
-  // Calcular diferencias
-  const deltaX = x - refX;
-  const deltaY = y - refY;
-  
-  // Convertir a lat/lng
-  const lat = refLat + (deltaY * latFactor);
-  const lng = refLng + (deltaX * lngFactor);
-  
-  return [lat, lng];
-}
-
-export default function MapaUbicacion({ coord_x, coord_y, ref_catastral }: MapaUbicacionProps) {
+export default function MapaUbicacion({ coord_wgs84, ref_catastral }: MapaUbicacionProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const [coordenadasValidas, setCoordenadasValidas] = useState(true)
@@ -47,47 +21,36 @@ export default function MapaUbicacion({ coord_x, coord_y, ref_catastral }: MapaU
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return
 
-    console.log('🗺️ MapaUbicacion - Props recibidas:', { coord_x, coord_y, ref_catastral })
+    console.log('🗺️ MapaUbicacion - Coordenadas WGS84 recibidas:', coord_wgs84)
 
-    // Validar que las coordenadas no estén vacías
-    if (!coord_x || !coord_y || coord_x.trim() === '' || coord_y.trim() === '') {
-      console.warn('⚠️ Coordenadas vacías o inválidas, no se puede mostrar el mapa')
+    // Verificar que las coordenadas WGS84 están disponibles
+    if (!coord_wgs84) {
+      console.warn('⚠️ coord_wgs84 no disponible del backend')
       setCoordenadasValidas(false)
       return
     }
 
-    // Las coordenadas vienen en formato con 2 decimales sin separador
-    // Ejemplo: 44808810 = 448088.10 metros
-    const x = parseFloat(coord_x) / 100
-    const y = parseFloat(coord_y) / 100
-    
-    // Validar que las coordenadas parseadas son válidas
-    if (isNaN(x) || isNaN(y)) {
-      console.warn('⚠️ Coordenadas inválidas después del parsing:', { x, y })
+    const { lat, lng, zoom_level } = coord_wgs84
+
+    // Validar que las coordenadas son números válidos
+    if (isNaN(lat) || isNaN(lng) || isNaN(zoom_level)) {
+      console.warn('⚠️ Coordenadas WGS84 inválidas:', coord_wgs84)
       setCoordenadasValidas(false)
       return
     }
 
-    console.log('🗺️ Coordenadas originales:', { coord_x, coord_y })
-    console.log('🔢 Coordenadas procesadas (÷100):', { x, y })
-    
-    // Convertir coordenadas UTM a lat/lng
-    const [lat, lng] = utmToLatLng(x, y)
-    
-    console.log('🌍 Coordenadas convertidas:', { lat, lng })
-
-    // Validar coordenadas finales
-    if (isNaN(lat) || isNaN(lng)) {
-      console.warn('⚠️ Coordenadas finales inválidas:', { lat, lng })
+    // Validar rango para España
+    if (lat < 35 || lat > 45 || lng < -10 || lng > 5) {
+      console.warn('⚠️ Coordenadas fuera del rango de España:', { lat, lng })
       setCoordenadasValidas(false)
       return
     }
 
-    // Si llegamos aquí, las coordenadas son válidas
+    console.log('✅ Coordenadas WGS84 válidas:', { lat, lng, zoom_level })
     setCoordenadasValidas(true)
 
-    // Crear el mapa
-    const map = L.map(mapRef.current).setView([lat, lng], 16)
+    // Crear el mapa con el zoom recomendado por el backend
+    const map = L.map(mapRef.current).setView([lat, lng], zoom_level)
     mapInstance.current = map
 
     // Añadir capa de OpenStreetMap
@@ -105,17 +68,26 @@ export default function MapaUbicacion({ coord_x, coord_y, ref_catastral }: MapaU
       shadowSize: [41, 41]
     })
 
-    // Añadir marcador
+    // Añadir marcador con popup informativo
     L.marker([lat, lng], { icon: defaultIcon })
       .addTo(map)
       .bindPopup(`
-        <div>
-          <strong>Edificio</strong><br>
-          Ref. Catastral: ${ref_catastral}<br>
-          Coordenadas: ${coord_x}, ${coord_y}
+        <div style="text-align: center;">
+          <strong>Edificio</strong><br/>
+          <small>Ref: ${ref_catastral}</small><br/>
+          <small>Lat: ${lat.toFixed(6)}</small><br/>
+          <small>Lng: ${lng.toFixed(6)}</small>
         </div>
       `)
       .openPopup()
+      
+    // Añadir círculo de precisión
+    L.circle([lat, lng], {
+      color: '#d2212b',
+      fillColor: '#d2212b', 
+      fillOpacity: 0.1,
+      radius: 10 // 10 metros de radio para indicar precisión
+    }).addTo(map)
 
     // Cleanup
     return () => {
@@ -124,7 +96,7 @@ export default function MapaUbicacion({ coord_x, coord_y, ref_catastral }: MapaU
         mapInstance.current = null
       }
     }
-  }, [coord_x, coord_y, ref_catastral])
+  }, [coord_wgs84, ref_catastral])
 
   return (
     <>
