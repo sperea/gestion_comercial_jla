@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Construir la URL de la API usando configuración centralizada
-    const apiUrl = buildUrl(API_ENDPOINTS.catastro.inmueblesByRefcat, { refcat })
+    const apiUrl = buildUrl(API_ENDPOINTS.catastro.edificioDetalle, { refcat })
 
     console.log('🏗️ Edificio detalle - Parámetros recibidos:', { refcat })
     console.log('🌐 URL completa de la API Django edificio detalle:', apiUrl)

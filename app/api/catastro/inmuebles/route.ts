@@ -54,6 +54,13 @@ export async function GET(request: NextRequest) {
     const apiUrl = buildUrl(API_ENDPOINTS.catastro.inmuebles, params)
 
     console.log('🏠 Búsqueda inmuebles - Parámetros recibidos:', params)
+    console.log('🔍 Parámetros individuales:', {
+      tipo_via: JSON.stringify(tipoVia),
+      nombre_via: JSON.stringify(nombreVia), 
+      nombre_municipio: JSON.stringify(nombreMunicipio),
+      nombre_provincia: JSON.stringify(nombreProvincia),
+      numero: JSON.stringify(numero)
+    })
     console.log('🌐 URL completa de la API Django:', apiUrl)
     console.log('📤 Headers de la petición:', {
       'Authorization': `Bearer ${accessToken.value.substring(0, 20)}...`,
@@ -74,15 +81,25 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       console.error('❌ Error en la respuesta de Django:', {
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        url: apiUrl
       })
+
+      // Intentar leer el cuerpo de la respuesta de error
+      let errorBody
+      try {
+        errorBody = await response.text()
+        console.error('📄 Cuerpo de la respuesta de error:', errorBody)
+      } catch (e) {
+        console.error('❌ No se pudo leer el cuerpo del error:', e)
+      }
 
       // Si es 401, intentar refrescar el token (para ahora, simplemente devolver el error)
       if (response.status === 401) {
         console.log('🔄 Token expirado - necesario implementar refresh')
       }
       
-      throw new Error(`API call failed with status ${response.status}`)
+      throw new Error(`API call failed with status ${response.status}: ${errorBody || response.statusText}`)
     }
 
     const data = await response.json()

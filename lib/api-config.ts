@@ -110,6 +110,7 @@ export const API_ENDPOINTS = {
   catastro: {
     inmuebles: '/catastro/inmuebles/',
     inmueblesByRefcat: '/catastro/inmuebles/refcat/',
+    edificioDetalle: '/catastro/edificio-detalle/',
     calles: '/catastro/calles/',
   },
   

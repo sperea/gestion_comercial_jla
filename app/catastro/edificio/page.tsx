@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense, useCallback } from 'react'
+import { useState, useEffect, Suspense, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import dynamic from 'next/dynamic'
@@ -15,60 +15,39 @@ const MapaUbicacion = dynamic(() => import('./MapaUbicacion'), {
   ref_catastral: string
 }>
 
-// Interfaz para el resumen del edificio según API
+// Interfaz para el resumen del edificio según API (nuevo formato del backend)
 interface EdificioResumen {
-  ref_catastral: string
-  direccion?: string  // Dirección completa del edificio (calculada)
-  coord_x: string
-  coord_y: string
-  superficie_parcela_m2: string
-  provincia: string
-  municipio: string
-  tipo_via: string
-  nombre_via: string
-  numero_1: string
-  letra_1: string
-  numero_2: string
-  letra_2: string
-  codigo_postal: string
-  plantas_bajo_rasante: number
-  plantas_en_alto: number
-  numero_edificios: number
-  numero_escaleras: number
-  m2_almacen_estacionamiento: string
-  num_almacen_estacionamiento: number
-  m2_residencial: string
-  num_residencial: number
-  m2_industrial: string
-  num_industrial: number
-  m2_oficinas: string
-  num_oficinas: number
-  m2_comercial: string
-  num_comercial: number
-  m2_deportivo: string
-  num_deportivo: number
-  m2_espectaculos: string
-  num_espectaculos: number
-  m2_ocio_hosteleria: string
-  num_ocio_hosteleria: number
-  m2_sanidad_beneficencia: string
-  num_sanidad_beneficencia: number
-  m2_cultural: string
-  num_cultural: number
-  m2_religioso: string
-  num_religioso: number
-  m2_urbanizacion_jardines: string
-  num_urbanizacion_jardines: number
-  m2_edificio_singular: string
-  num_edificio_singular: number
-  m2_almacen_agrario: string
-  num_almacen_agrario: number
-  m2_industrial_agrario: string
-  num_industrial_agrario: number
-  m2_agrario: string
-  num_agrario: number
-  superficie_total_construida: string
+  ref_catastral_base: string
   total_inmuebles: number
+  superficie_total: number
+  distribucion: {
+    viviendas: number
+    locales: number
+    garajes: number
+    comercial: number
+    oficinas: number
+    otros: number
+  }
+  plantas: number
+  escaleras: number
+  bloques: number
+  direccion: {
+    tipo_via: string
+    nombre_via: string
+    numero: number
+    municipio: string
+    provincia: string
+    cp: number
+  }
+  // Coordenadas opcionales
+  coord_x?: string
+  coord_y?: string
+  coordX?: string
+  coordY?: string
+  x?: string
+  y?: string
+  coordenadas?: any
+  ubicacion?: any
 }
 
 // Interfaz para inmueble individual del listado
@@ -108,6 +87,86 @@ function EdificioDetallePageContent() {
     direction: 'asc' | 'desc'
   }>({ key: null, direction: 'asc' })
 
+  // useMemo debe ir antes de cualquier return condicional
+  const tiposPropiedad = useMemo(() => {
+    console.log('🔄 useMemo ejecutándose...')
+    console.log('🏢 edificioData completo:', edificioData)
+    
+    if (!edificioData?.distribucion || edificioData.superficie_total === undefined) {
+      console.log('⚠️ No hay datos de distribución disponibles o datos incompletos')
+      console.log('📦 edificioData:', edificioData)
+      return []
+    }
+
+    const dist = edificioData.distribucion
+    const superficiePorUnidad = edificioData.superficie_total / Math.max(edificioData.total_inmuebles, 1)
+    
+    console.log('📊 Distribución recibida:', dist)
+    console.log('📏 Superficie por unidad:', superficiePorUnidad)
+    console.log('🏠 Tipos individuales:', {
+      viviendas: dist.viviendas,
+      locales: dist.locales,
+      garajes: dist.garajes,
+      comercial: dist.comercial,
+      oficinas: dist.oficinas,
+      otros: dist.otros
+    })
+    
+    const tipos = [
+      { 
+        nombre: 'Viviendas', 
+        m2: Math.round(dist.viviendas * superficiePorUnidad), 
+        num: dist.viviendas || 0, 
+        color: 'border-blue-300 bg-blue-50',
+        icon: '🏠'
+      },
+      { 
+        nombre: 'Locales', 
+        m2: Math.round(dist.locales * superficiePorUnidad), 
+        num: dist.locales || 0, 
+        color: 'border-green-300 bg-green-50',
+        icon: '🏪'
+      },
+      { 
+        nombre: 'Garajes', 
+        m2: Math.round(dist.garajes * superficiePorUnidad), 
+        num: dist.garajes || 0, 
+        color: 'border-gray-300 bg-gray-50',
+        icon: '🚗'
+      },
+      { 
+        nombre: 'Comercial', 
+        m2: Math.round(dist.comercial * superficiePorUnidad), 
+        num: dist.comercial || 0, 
+        color: 'border-purple-300 bg-purple-50',
+        icon: '🛍️'
+      },
+      { 
+        nombre: 'Oficinas', 
+        m2: Math.round(dist.oficinas * superficiePorUnidad), 
+        num: dist.oficinas || 0, 
+        color: 'border-indigo-300 bg-indigo-50',
+        icon: '🏢'
+      },
+      { 
+        nombre: 'Otros', 
+        m2: Math.round(dist.otros * superficiePorUnidad), 
+        num: dist.otros || 0, 
+        color: 'border-orange-300 bg-orange-50',
+        icon: '📦'
+      }
+    ]
+
+    console.log('📋 Todos los tipos generados:', tipos.map(t => `${t.nombre}: ${t.num} (${t.m2}m²)`))
+    
+    // Filtrar solo tipos que tienen datos > 0
+    const tiposConDatos = tipos.filter(tipo => tipo.num > 0)
+    console.log('📋 Tipos con datos > 0:', tiposConDatos.length, tiposConDatos.map(t => `${t.nombre}: ${t.num}`))
+    console.log('📋 Tipos finales a mostrar:', tiposConDatos)
+    
+    return tiposConDatos
+  }, [edificioData])
+
   useEffect(() => {
     if (!refCatastral) {
       setError('No se proporcionó referencia catastral')
@@ -121,57 +180,50 @@ function EdificioDetallePageContent() {
   // useEffect para debug de dirección
   useEffect(() => {
     if (edificioData) {
-      console.log('🔍 Debug - Dirección en useEffect:', edificioData.direccion)
-      console.log('🔍 Debug - EdificioData completo:', edificioData)
-      console.log('🔍 Debug - Campos de dirección:', {
-        tipo_via: edificioData.tipo_via,
-        nombre_via: edificioData.nombre_via,
-        numero_1: edificioData.numero_1,
-        letra_1: edificioData.letra_1,
-        codigo_postal: edificioData.codigo_postal,
-        municipio: edificioData.municipio,
-        provincia: edificioData.provincia
-      })
+      console.log('✅ Datos del edificio recibidos:', edificioData)
+      console.log('📍 Dirección:', edificioData.direccion)
+      console.log('📊 Distribución:', edificioData.distribucion)
     }
   }, [edificioData])
 
+  // Debug de tiposPropiedad
+  useEffect(() => {
+    console.log('🔍 [RENDER] tiposPropiedad length:', tiposPropiedad.length)
+    console.log('🔍 [RENDER] tiposPropiedad data:', tiposPropiedad)
+    console.log('🔍 [RENDER] edificioData existe:', !!edificioData)
+    console.log('🔍 [RENDER] distribución existe:', !!edificioData?.distribucion)
+  }, [tiposPropiedad, edificioData])
+
   // Función para construir la dirección completa a partir de los datos del edificio
   const construirDireccionCompleta = useCallback((datos: EdificioResumen): string => {
+    if (!datos.direccion) return ''
+    
+    const dir = datos.direccion
     const partes: string[] = []
     
     // Tipo de vía y nombre
-    if (datos.tipo_via && datos.nombre_via) {
-      partes.push(`${datos.tipo_via} ${datos.nombre_via}`)
+    if (dir.tipo_via && dir.nombre_via) {
+      partes.push(`${dir.tipo_via} ${dir.nombre_via}`)
     }
     
-    // Número principal
-    if (datos.numero_1 && datos.numero_1 !== "0000") {
-      let numero = datos.numero_1.replace(/^0+/, '') // Quitar ceros a la izquierda
-      if (datos.letra_1) {
-        numero += datos.letra_1
-      }
-      partes.push(numero)
-    }
-    
-    // Número secundario (si existe y no es 0000)
-    if (datos.numero_2 && datos.numero_2 !== "0000") {
-      let numero2 = datos.numero_2.replace(/^0+/, '')
-      if (datos.letra_2) {
-        numero2 += datos.letra_2
-      }
-      partes.push(`-${numero2}`)
+    // Número
+    if (dir.numero) {
+      const numeroStr = String(dir.numero)
+      // Quitar decimales .00 si existen
+      const numeroLimpio = numeroStr.replace(/\.0+$/, '')
+      partes.push(numeroLimpio)
     }
     
     // Código postal y municipio
     const ubicacion = []
-    if (datos.codigo_postal) {
-      ubicacion.push(datos.codigo_postal)
+    if (dir.cp) {
+      ubicacion.push(String(dir.cp))
     }
-    if (datos.municipio) {
-      ubicacion.push(datos.municipio)
+    if (dir.municipio) {
+      ubicacion.push(dir.municipio)
     }
-    if (datos.provincia && datos.provincia !== datos.municipio) {
-      ubicacion.push(`(${datos.provincia})`)
+    if (dir.provincia && dir.provincia !== dir.municipio) {
+      ubicacion.push(`(${dir.provincia})`)
     }
     
     const direccionBase = partes.join(' ')
@@ -208,55 +260,57 @@ function EdificioDetallePageContent() {
       const data = await response.json()
       
       if (data.success && data.data) {
-        console.log('✅ Datos del edificio recibidos:', data.data)
+        console.log('✅ Datos del edificio recibidos:', data)
         console.log('📊 Tipo de datos:', typeof data.data)
         console.log('📋 Es array?:', Array.isArray(data.data))
+        console.log('🔍 Estructura de data:', {
+          hasSuccess: 'success' in data,
+          hasData: 'data' in data,
+          dataType: typeof data.data,
+          dataKeys: data.data ? Object.keys(data.data) : 'no data'
+        })
         
-        // Los datos vienen directamente en formato EdificioResumen desde la API
-        if (Array.isArray(data.data) && data.data.length > 0) {
-          // Si viene como array, tomar el primer elemento (debería ser el resumen del edificio)
-          console.log('🏠 Primer elemento del array:', JSON.stringify(data.data[0], null, 2))
-          const edificio = data.data[0]
-          // Construir la dirección completa
-          const direccionCompleta = construirDireccionCompleta(edificio)
-          console.log('📍 Dirección construida (array):', direccionCompleta)
-          console.log('📍 Datos de dirección disponibles (array):', {
-            tipo_via: edificio.tipo_via,
-            nombre_via: edificio.nombre_via,
-            numero_1: edificio.numero_1,
-            letra_1: edificio.letra_1,
-            numero_2: edificio.numero_2,
-            letra_2: edificio.letra_2,
-            codigo_postal: edificio.codigo_postal,
-            municipio: edificio.municipio,
-            provincia: edificio.provincia
-          })
-          const edificioConDireccion = { ...edificio, direccion: direccionCompleta }
-          setEdificioData(edificioConDireccion)
-        } else if (data.data && typeof data.data === 'object') {
-          // Si viene como objeto único (formato esperado)
-          console.log('� Datos del edificio:', data.data)
-        } else if (data.data && typeof data.data === 'object') {
-          // Si viene como objeto único (formato esperado)
-          console.log('🏢 Datos del edificio:', data.data)
-          const direccionCompleta = construirDireccionCompleta(data.data)
-          console.log('📍 Dirección construida:', direccionCompleta)
-          console.log('📍 Datos de dirección disponibles:', {
-            tipo_via: data.data.tipo_via,
-            nombre_via: data.data.nombre_via,
-            numero_1: data.data.numero_1,
-            letra_1: data.data.letra_1,
-            numero_2: data.data.numero_2,
-            letra_2: data.data.letra_2,
-            codigo_postal: data.data.codigo_postal,
-            municipio: data.data.municipio,
-            provincia: data.data.provincia
-          })
-          const edificioConDireccion = { ...data.data, direccion: direccionCompleta }
-          setEdificioData(edificioConDireccion)
-        } else {
-          throw new Error('Formato de datos no reconocido')
+        // Los datos vienen en data.data desde la API
+        const edificioInfo = data.data
+        console.log('🏢 Datos del edificio extraídos:', edificioInfo)
+        console.log('📊 Distribución disponible:', edificioInfo?.distribucion)
+        
+        // Si edificioInfo tiene a su vez success y data, acceder a la estructura anidada
+        let datosReales = edificioInfo
+        if (edificioInfo.success && edificioInfo.data) {
+          console.log('🔍 Detectada estructura doblemente anidada, accediendo a edificioInfo.data')
+          datosReales = edificioInfo.data
         }
+        
+        console.log('📦 Datos reales del edificio:', datosReales)
+        console.log('📊 Distribución en datos reales:', datosReales?.distribucion)
+        console.log('🔍 Propiedades disponibles en datosReales:', datosReales ? Object.keys(datosReales) : 'no data')
+        console.log('🔍 ¿Tiene coordenadas?:', {
+          coord_x: datosReales?.coord_x,
+          coord_y: datosReales?.coord_y,
+          coordX: datosReales?.coordX,
+          coordY: datosReales?.coordY,
+          x: datosReales?.x,
+          y: datosReales?.y,
+          coordenadas: datosReales?.coordenadas,
+          ubicacion: datosReales?.ubicacion
+        })
+        
+        // Construir la dirección completa si existe
+        let direccionCompleta = ''
+        if (datosReales?.direccion) {
+          direccionCompleta = construirDireccionCompleta(datosReales)
+        }
+        
+        // Asignar solo los datos del edificio, no la estructura de respuesta
+        const edificioFinal = {
+          ...datosReales,  // Esto contiene: distribucion, superficie_total, etc.
+          direccion: direccionCompleta
+        }
+        
+        console.log('🎯 Edificio final a asignar:', edificioFinal)
+        console.log('🔍 Distribución en edificio final:', edificioFinal.distribucion)
+        setEdificioData(edificioFinal)
         
       } else {
         throw new Error('No se encontraron datos para esta referencia catastral')
@@ -269,87 +323,6 @@ function EdificioDetallePageContent() {
       setLoading(false)
     }
   }, [construirDireccionCompleta])
-
-  // Función para obtener los tipos de propiedad con sus datos
-  const getTiposPropiedad = () => {
-    if (!edificioData) return []
-    
-    const tipos = [
-      { 
-        nombre: 'Residencial', 
-        m2: parseFloat(edificioData.m2_residencial || '0'), 
-        num: edificioData.num_residencial || 0, 
-        color: 'bg-blue-100 text-blue-800',
-        icon: '🏠'
-      },
-      { 
-        nombre: 'Comercial', 
-        m2: parseFloat(edificioData.m2_comercial || '0'), 
-        num: edificioData.num_comercial || 0, 
-        color: 'bg-green-100 text-green-800',
-        icon: '🏪'
-      },
-      { 
-        nombre: 'Oficinas', 
-        m2: parseFloat(edificioData.m2_oficinas || '0'), 
-        num: edificioData.num_oficinas || 0, 
-        color: 'bg-purple-100 text-purple-800',
-        icon: '🏢'
-      },
-      { 
-        nombre: 'Industrial', 
-        m2: parseFloat(edificioData.m2_industrial || '0'), 
-        num: edificioData.num_industrial || 0, 
-        color: 'bg-orange-100 text-orange-800',
-        icon: '🏭'
-      },
-      { 
-        nombre: 'Almacén/Estacionamiento', 
-        m2: parseFloat(edificioData.m2_almacen_estacionamiento || '0'), 
-        num: edificioData.num_almacen_estacionamiento || 0, 
-        color: 'bg-gray-100 text-gray-800',
-        icon: '🚗'
-      },
-      { 
-        nombre: 'Deportivo', 
-        m2: parseFloat(edificioData.m2_deportivo || '0'), 
-        num: edificioData.num_deportivo || 0, 
-        color: 'bg-indigo-100 text-indigo-800',
-        icon: '🏃'
-      },
-      { 
-        nombre: 'Ocio y Hostelería', 
-        m2: parseFloat(edificioData.m2_ocio_hosteleria || '0'), 
-        num: edificioData.num_ocio_hosteleria || 0, 
-        color: 'bg-pink-100 text-pink-800',
-        icon: '🍽️'
-      },
-      { 
-        nombre: 'Cultural', 
-        m2: parseFloat(edificioData.m2_cultural || '0'), 
-        num: edificioData.num_cultural || 0, 
-        color: 'bg-yellow-100 text-yellow-800',
-        icon: '🎭'
-      },
-      { 
-        nombre: 'Sanidad y Beneficencia', 
-        m2: parseFloat(edificioData.m2_sanidad_beneficencia || '0'), 
-        num: edificioData.num_sanidad_beneficencia || 0, 
-        color: 'bg-red-100 text-red-800',
-        icon: '🏥'
-      },
-      { 
-        nombre: 'Espectáculos', 
-        m2: parseFloat(edificioData.m2_espectaculos || '0'), 
-        num: edificioData.num_espectaculos || 0, 
-        color: 'bg-purple-100 text-purple-800',
-        icon: '🎪'
-      }
-    ]
-    
-    // Filtrar solo los tipos que tienen datos (cantidad > 0 o superficie > 0)
-    return tipos.filter(tipo => tipo.num > 0 || tipo.m2 > 0)
-  }
 
   // Función para cargar lista detallada de inmuebles
   const cargarInmuebles = async () => {
@@ -540,7 +513,7 @@ function EdificioDetallePageContent() {
     const url = URL.createObjectURL(blob)
     
     link.setAttribute('href', url)
-    link.setAttribute('download', `inmuebles_${edificioData?.ref_catastral || 'seleccionados'}_${new Date().toISOString().split('T')[0]}.csv`)
+    link.setAttribute('download', `inmuebles_${edificioData?.ref_catastral_base || 'seleccionados'}_${new Date().toISOString().split('T')[0]}.csv`)
     link.style.visibility = 'hidden'
     
     document.body.appendChild(link)
@@ -591,7 +564,7 @@ function EdificioDetallePageContent() {
     if (!edificioData) return
 
     // Crear contenido HTML para el PDF
-    const desgloseTipos = getTiposPropiedad()
+    const desgloseTipos = tiposPropiedad
     const desgloseSeleccionados = getDesgloseSeleccionados()
     const inmuebleSeleccionadosList = Array.from(selectedInmuebles).map(index => inmuebles[index]).filter(Boolean)
     
@@ -636,7 +609,7 @@ function EdificioDetallePageContent() {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Informe Catastral - ${edificioData.ref_catastral}</title>
+        <title>Informe Catastral - ${edificioData.ref_catastral_base}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
           .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #dc2626; }
@@ -705,31 +678,31 @@ function EdificioDetallePageContent() {
               <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div class="info-item">
                   <div class="info-label">Referencia Catastral</div>
-                  <div class="info-value">${edificioData.ref_catastral}</div>
+                  <div class="info-value">${edificioData.ref_catastral_base}</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">Total Inmuebles</div>
                   <div class="info-value">${edificioData.total_inmuebles}</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Superficie Parcela</div>
-                  <div class="info-value">${parseFloat(edificioData.superficie_parcela_m2).toLocaleString()} m²</div>
+                  <div class="info-label">Superficie Total</div>
+                  <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">Superficie Total Construida</div>
-                  <div class="info-value">${parseFloat(edificioData.superficie_total_construida).toLocaleString()} m²</div>
+                  <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Plantas Bajo Rasante</div>
-                  <div class="info-value">${edificioData.plantas_bajo_rasante}</div>
+                  <div class="info-label">Plantas</div>
+                  <div class="info-value">${edificioData.plantas}</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Plantas en Alto</div>
-                  <div class="info-value">${edificioData.plantas_en_alto}</div>
+                  <div class="info-label">Plantas</div>
+                  <div class="info-value">${edificioData.plantas}</div>
                 </div>
                 <div class="info-item" style="grid-column: 1 / -1;">
                   <div class="info-label">Número de Escaleras</div>
-                  <div class="info-value">${edificioData.numero_escaleras}</div>
+                  <div class="info-value">${edificioData.escaleras}</div>
                 </div>
               </div>
             </div>
@@ -786,31 +759,31 @@ function EdificioDetallePageContent() {
           <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
             <div class="info-item">
               <div class="info-label">Referencia Catastral</div>
-              <div class="info-value">${edificioData.ref_catastral}</div>
+              <div class="info-value">${edificioData.ref_catastral_base}</div>
             </div>
             <div class="info-item">
               <div class="info-label">Total Inmuebles</div>
               <div class="info-value">${edificioData.total_inmuebles}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">Superficie Parcela</div>
-              <div class="info-value">${parseFloat(edificioData.superficie_parcela_m2).toLocaleString()} m²</div>
+              <div class="info-label">Superficie Total</div>
+              <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
             </div>
             <div class="info-item">
               <div class="info-label">Superficie Total Construida</div>
-              <div class="info-value">${parseFloat(edificioData.superficie_total_construida).toLocaleString()} m²</div>
+              <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
             </div>
             <div class="info-item">
-              <div class="info-label">Plantas Bajo Rasante</div>
-              <div class="info-value">${edificioData.plantas_bajo_rasante}</div>
+              <div class="info-label">Plantas</div>
+              <div class="info-value">${edificioData.plantas}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">Plantas en Alto</div>
-              <div class="info-value">${edificioData.plantas_en_alto}</div>
+              <div class="info-label">Plantas</div>
+              <div class="info-value">${edificioData.plantas}</div>
             </div>
             <div class="info-item" style="grid-column: 1 / -1;">
               <div class="info-label">Número de Escaleras</div>
-              <div class="info-value">${edificioData.numero_escaleras}</div>
+              <div class="info-value">${edificioData.escaleras}</div>
             </div>
           </div>
           
@@ -1082,8 +1055,6 @@ function EdificioDetallePageContent() {
     )
   }
 
-  const tiposPropiedad = getTiposPropiedad()
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1109,7 +1080,7 @@ function EdificioDetallePageContent() {
         </div>
 
         {/* Grid de Información del Edificio y Mapa */}
-        {edificioData && (
+        {edificioData && edificioData.superficie_total !== undefined && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             
             {/* Información del Edificio */}
@@ -1126,7 +1097,7 @@ function EdificioDetallePageContent() {
                 {edificioData.direccion && (
                   <>
                     <p className="text-xs text-gray-500 mb-1">Dirección catastral:</p>
-                    <p className="text-sm text-gray-700">{edificioData.direccion}</p>
+                    <p className="text-sm text-gray-700">{construirDireccionCompleta(edificioData)}</p>
                   </>
                 )}
               </div>
@@ -1134,35 +1105,35 @@ function EdificioDetallePageContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Referencia Catastral</p>
-                  <p className="font-mono font-semibold">{edificioData.ref_catastral}</p>
+                  <p className="font-mono font-semibold">{edificioData.ref_catastral_base}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Superficie Total Construida</p>
-                  <p className="font-semibold">{parseFloat(edificioData.superficie_total_construida || '0').toLocaleString()} m²</p>
+                  <p className="font-semibold">{edificioData.superficie_total?.toLocaleString() || '0'} m²</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total de Inmuebles</p>
                   <p className="font-semibold">{edificioData.total_inmuebles || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Superficie de Parcela</p>
-                  <p className="font-semibold">{parseFloat(edificioData.superficie_parcela_m2 || '0').toLocaleString()} m²</p>
+                  <p className="text-sm text-gray-600">Superficie Total</p>
+                  <p className="font-semibold">{parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Plantas en Alto</p>
-                  <p className="font-semibold">{edificioData.plantas_en_alto}</p>
+                  <p className="text-sm text-gray-600">Plantas</p>
+                  <p className="font-semibold">{edificioData.plantas || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Plantas Bajo Rasante</p>
-                  <p className="font-semibold">{edificioData.plantas_bajo_rasante}</p>
+                  <p className="text-sm text-gray-600">Escaleras</p>
+                  <p className="font-semibold">{edificioData.escaleras || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Número de Edificios</p>
-                  <p className="font-semibold">{edificioData.numero_edificios}</p>
+                  <p className="text-sm text-gray-600">Número de Bloques</p>
+                  <p className="font-semibold">{edificioData.bloques || 0}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Número de Escaleras</p>
-                  <p className="font-semibold">{edificioData.numero_escaleras}</p>
+                  <p className="font-semibold">{edificioData.escaleras}</p>
                 </div>
               </div>
             </div>
@@ -1172,9 +1143,9 @@ function EdificioDetallePageContent() {
               <h2 className="text-xl font-bold text-gray-900 mb-4">📍 Ubicación</h2>
               <div className="h-80">
                 <MapaUbicacion 
-                  coord_x={edificioData.coord_x}
-                  coord_y={edificioData.coord_y}
-                  ref_catastral={edificioData.ref_catastral}
+                  coord_x={edificioData.coord_x || '44000000'} // Centro Madrid por defecto
+                  coord_y={edificioData.coord_y || '447400000'} // Centro Madrid por defecto
+                  ref_catastral={edificioData.ref_catastral_base}
                 />
               </div>
             </div>

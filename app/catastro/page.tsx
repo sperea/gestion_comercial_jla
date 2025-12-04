@@ -120,20 +120,45 @@ export default function CatastroPage() {
   const handleNumeroSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (calleSeleccionada === null) return
+    if (calleSeleccionada === null) {
+      console.error('❌ No hay calle seleccionada')
+      return
+    }
     
+    if (calleSeleccionada >= resultados.length || calleSeleccionada < 0) {
+      console.error('❌ Índice de calle seleccionada fuera de rango:', calleSeleccionada, 'de', resultados.length)
+      return
+    }
+
     const calleActual = resultados[calleSeleccionada]
     
+    if (!calleActual) {
+      console.error('❌ No se pudo obtener los datos de la calle seleccionada')
+      return
+    }
+
     setLoadingInmuebles(true)
     setErrorInmuebles(null)
     setResultadosInmuebles([])
     setHasBuscadoInmuebles(true)
     
     try {
+      console.log('Calle seleccionada:', calleSeleccionada)
       console.log('Búsqueda catastral para:', {
         calle: calleActual,
         numero: numeroCalle.trim()
       })
+      console.log('📋 Detalles de calleActual:', {
+        tipo_via: calleActual?.tipo_via,
+        nombre_via: calleActual?.nombre_via,
+        nombre_municipio: calleActual?.nombre_municipio,
+        nombre_provincia: calleActual?.nombre_provincia
+      })
+      
+      // Verificar que calleActual tiene las propiedades necesarias
+      if (!calleActual || !calleActual.tipo_via || !calleActual.nombre_via || !calleActual.nombre_municipio || !calleActual.nombre_provincia) {
+        throw new Error('Los datos de la calle seleccionada están incompletos')
+      }
       
       // Construir parámetros para la llamada
       const params = new URLSearchParams({
