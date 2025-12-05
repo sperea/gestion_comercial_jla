@@ -6,6 +6,24 @@ const nextConfig = {
     output: 'standalone',
   }),
   
+  // Configuración para mejorar estabilidad y cache
+  experimental: {
+    optimizePackageImports: ['@heroicons/react'],
+  },
+  
+  // Configuración de webpack para resolver problemas de cache
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      // Configuración para desarrollo - cache más agresiva pero más estable
+      config.cache = {
+        type: 'filesystem',
+        allowCollectingMemory: true,
+        compression: false, // Desactivar compresión para evitar "incorrect header check"
+      }
+    }
+    return config
+  },
+  
   images: {
     remotePatterns: [
       {

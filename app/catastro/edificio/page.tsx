@@ -330,18 +330,26 @@ function EdificioDetallePageContent() {
 
   // Función para cargar lista detallada de inmuebles
   const cargarInmuebles = async () => {
-    if (!refCatastral || !edificioData) return
+    if (!refCatastral || !edificioData) {
+      console.error('❌ No se puede cargar inmuebles:', {
+        refCatastral,
+        edificioData: !!edificioData
+      })
+      return
+    }
 
     try {
       setLoadingInmuebles(true)
       setErrorInmuebles(null)
       
       console.log('🏠 Cargando inmuebles para referencia:', refCatastral)
+      console.log('🏢 Datos del edificio disponibles:', !!edificioData)
       
       const url = `/api/catastro/inmuebles/listado/refcat?ref=${encodeURIComponent(refCatastral)}`
       console.log('🔗 URL del frontend que se va a llamar:', url)
       console.log('🌍 window.location.origin:', window.location.origin)
       console.log('🌐 URL completa:', `${window.location.origin}${url}`)
+      console.log('📋 Referencia catastral encoded:', encodeURIComponent(refCatastral))
       
       const response = await fetch(url, {
         method: 'GET',
@@ -352,51 +360,159 @@ function EdificioDetallePageContent() {
       })
       
       if (!response.ok) {
+        console.error(`❌ Error HTTP ${response.status}:`, response.statusText)
+        console.error('🔗 URL que falló:', `${window.location.origin}${url}`)
+        
         // Intentar leer el error como JSON
         let errorMessage = `Error ${response.status}: ${response.statusText}`
+        let errorDetails = null
+        
         try {
           const errorData = await response.json()
+          console.error('📄 Detalles del error JSON:', errorData)
+          errorDetails = errorData
+          
           // Manejar errores específicos del backend
           if (errorData.detail && errorData.detail.includes('no existe la columna')) {
             errorMessage = '⚠️ Error en la base de datos del catastro. El equipo técnico ha sido notificado y está trabajando para solucionarlo.'
           } else if (errorData.detail && errorData.detail.includes('sintaxis de entrada no es válida')) {
             errorMessage = '⚠️ Error en el servidor: hay un problema con los datos del catastro. El equipo técnico ha sido notificado.'
+          } else if (response.status === 500) {
+            errorMessage = `⚠️ Error interno del servidor (${response.status}). Detalles: ${errorData.error || errorData.message || errorData.detail || 'Error desconocido'}`
+          } else if (response.status === 401) {
+            errorMessage = `🔐 Error de autenticación. El token JWT ha expirado o es inválido. Por favor, inicia sesión nuevamente.`
           } else {
             errorMessage = errorData.error || errorData.message || errorData.detail || errorMessage
           }
-        } catch {
-          // Si no es JSON, podría ser HTML (error de autenticación)
-          const errorText = await response.text()
-          if (errorText.includes('<!DOCTYPE')) {
-            errorMessage = 'Error de autenticación. Por favor, inicia sesión nuevamente.'
+        } catch (jsonError) {
+          console.error('❌ No se pudo parsear la respuesta de error como JSON:', jsonError)
+          
+          // Si no es JSON, podría ser HTML (error de autenticación) o texto plano
+          try {
+            const errorText = await response.text()
+            console.error('📄 Respuesta de error como texto:', errorText)
+            
+            if (errorText.includes('<!DOCTYPE')) {
+              errorMessage = 'Error de autenticación. Por favor, inicia sesión nuevamente.'
+            } else if (response.status === 500) {
+              errorMessage = `⚠️ Error interno del servidor (500). El servidor encontró un problema procesando la solicitud.`
+            }
+          } catch (textError) {
+            console.error('❌ No se pudo leer la respuesta de error como texto:', textError)
+            if (response.status === 500) {
+              errorMessage = `⚠️ Error interno del servidor (500). El servidor no pudo procesar la solicitud.`
+            }
           }
         }
         throw new Error(errorMessage)
       }
-
+      
       // Verificar que la respuesta es JSON válido
       const contentType = response.headers.get('content-type')
+      console.log('📄 Content-Type de respuesta:', contentType)
+      
       if (!contentType || !contentType.includes('application/json')) {
+        console.error('❌ Respuesta no es JSON:', contentType)
         throw new Error('La respuesta no es JSON válido. Posible problema de autenticación.')
       }
 
       const responseData = await response.json()
       
-      console.log('📋 Respuesta inmuebles:', responseData)
+      console.log('📋 Respuesta inmuebles cruda:', responseData)
+      console.log('🔍 Estructura de respuesta:', {
+        type: typeof responseData,
+        isArray: Array.isArray(responseData),
+        keys: responseData && typeof responseData === 'object' ? Object.keys(responseData) : [],
+        hasSuccess: responseData && 'success' in responseData,
+        hasData: responseData && 'data' in responseData
+      })
+      
+      // Verificar si hay errores de autenticación en la respuesta exitosa
+      if (responseData && responseData.error && responseData.error.includes('No autenticado')) {
+        console.error('❌ Error de autenticación en respuesta exitosa:', responseData)
+        throw new Error('🔐 Error de autenticación. Por favor, inicia sesión nuevamente.')
+      }
 
       // Manejar diferentes formatos de respuesta
       let inmueblesList: InmuebleDetalle[] = []
       
+      console.log('🔍 Tipo de responseData:', typeof responseData)
+      console.log('📋 responseData:', responseData)
+      console.log('🔢 Es array responseData?', Array.isArray(responseData))
+      
       if (responseData.success && responseData.data) {
-        inmueblesList = responseData.data
+        console.log('✅ Usando responseData.data')
+        console.log('🔢 Es array responseData.data?', Array.isArray(responseData.data))
+        inmueblesList = Array.isArray(responseData.data) ? responseData.data : []
       } else if (Array.isArray(responseData)) {
+        console.log('✅ Usando responseData directamente (es array)')
         inmueblesList = responseData
       } else {
+        console.error('❌ Formato de datos no reconocido:', {
+          isArray: Array.isArray(responseData),
+          hasSuccess: 'success' in responseData,
+          hasData: 'data' in responseData,
+          keys: Object.keys(responseData || {})
+        })
         throw new Error('Formato de datos no reconocido en la respuesta')
       }
-
+      
+      // Verificar que inmueblesList es un array válido
+      if (!Array.isArray(inmueblesList)) {
+        console.error('❌ inmueblesList no es un array:', inmueblesList)
+        throw new Error('Los datos de inmuebles no tienen el formato esperado')
+      }
+      
+      console.log(`📊 Array de inmuebles válido con ${inmueblesList.length} elementos`)
+      
       setInmuebles(inmueblesList)
       console.log(`✅ ${inmueblesList.length} inmuebles cargados correctamente`)
+      
+      // 🔍 DATOS EN BRUTO PARA DEPURACIÓN
+      console.group('📊 DEPURACIÓN - DATOS EN BRUTO DE INMUEBLES')
+      console.log('🏠 Lista completa de inmuebles:', inmueblesList)
+      
+      console.log('\n📋 TABLA RESUMEN POR CÓDIGO DE USO:')
+      const codigoCount: Record<string, number> = {}
+      const codigoSamples: Record<string, { ejemplo: InmuebleDetalle; indices: number[] }> = {}
+      
+      inmueblesList.forEach((inmueble, index) => {
+        const codigo = inmueble.uso_principal || 'SIN_CODIGO'
+        codigoCount[codigo] = (codigoCount[codigo] || 0) + 1
+        
+        if (!codigoSamples[codigo]) {
+          codigoSamples[codigo] = {
+            ejemplo: inmueble,
+            indices: []
+          }
+        }
+        codigoSamples[codigo].indices.push(index)
+      })
+      
+      console.table(Object.entries(codigoCount).map(([codigo, cantidad]) => ({
+        'Código': codigo,
+        'Cantidad': cantidad,
+        'Descripción': codigoSamples[codigo]?.ejemplo?.uso_descripcion || 'N/A',
+        'Indices ejemplos': codigoSamples[codigo]?.indices.slice(0, 3).join(', ') + (codigoSamples[codigo]?.indices.length > 3 ? '...' : '')
+      })))
+      
+      console.log('\n📝 EJEMPLOS DETALLADOS POR CÓDIGO:')
+      Object.entries(codigoSamples).forEach(([codigo, data]) => {
+        console.group(`🔸 Código: ${codigo} (${codigoCount[codigo]} inmuebles)`)
+        console.log('📄 Ejemplo completo:', data.ejemplo)
+        console.log('🏷️ uso_principal:', data.ejemplo.uso_principal)
+        console.log('📝 uso_descripcion:', data.ejemplo.uso_descripcion)
+        console.log('📍 Ubicación:', `Bloque: ${data.ejemplo.bloque || 'N/A'}, Escalera: ${data.ejemplo.escalera || 'N/A'}, Planta: ${data.ejemplo.planta || 'N/A'}, Puerta: ${data.ejemplo.puerta || 'N/A'}`)
+        console.log('📐 Superficie:', data.ejemplo.superficie_m2, 'm²')
+        console.log('🏗️ Año construcción:', data.ejemplo.ano_construccion || 'N/A')
+        console.log('🎯 Cómo se categoriza:', (() => {
+          const { categoria, subcategoria } = categorizarInmueble(data.ejemplo.uso_principal, data.ejemplo.uso_descripcion)
+          return `${categoria} → ${subcategoria}`
+        })())
+        console.groupEnd()
+      })
+      
+      console.groupEnd()
       
       // Seleccionar todos los inmuebles por defecto
       const todosLosIndices = new Set(inmueblesList.map((_, index) => index))
@@ -697,48 +813,43 @@ function EdificioDetallePageContent() {
         </div>
 
           <div class="section">
-          <div class="section-title">Información General del Edificio</div>
+          <div class="section-title">Información General</div>
           
           <div class="info-item" style="grid-column: 1/-1; background: #eff6ff; border: 3px solid #3b82f6; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
             <div class="info-label" style="color: #2563eb; font-weight: bold; font-size: 14px; margin-bottom: 10px;">📍 Dirección de Búsqueda</div>
             <div class="info-value" style="font-size: 20px; font-weight: bold; color: #1f2937; line-height: 1.4; margin-bottom: 10px;">${direccionBusqueda || 'Dirección no especificada'}</div>
             ${edificioData.direccion ? `
-              <div class="info-label" style="color: #6b7280; font-size: 12px; margin-bottom: 5px;">Dirección catastral:</div>
-              <div class="info-value" style="font-size: 14px; color: #4b5563;">${edificioData.direccion}</div>
+              <div class="info-value" style="font-size: 14px; color: #4b5563; margin-top: 5px;">${edificioData.direccion}</div>
             ` : ''}
           </div>
           
           <div class="two-column-layout">
             <!-- Columna de información -->
             <div class="column">
-              <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="info-grid" style="grid-template-columns: 1fr; gap: 15px;">
                 <div class="info-item">
                   <div class="info-label">Referencia Catastral</div>
                   <div class="info-value">${edificioData.ref_catastral_base}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Total Inmuebles</div>
-                  <div class="info-value">${edificioData.total_inmuebles}</div>
-                </div>
-                <div class="info-item">
-                  <div class="info-label">Superficie Total</div>
-                  <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
                 </div>
                 <div class="info-item">
                   <div class="info-label">Superficie Total Construida</div>
                   <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Plantas</div>
-                  <div class="info-value">${edificioData.plantas}</div>
+                  <div class="info-label">⬆️ Plantas sobre rasante</div>
+                  <div class="info-value">${Math.max(0, (parseInt(edificioData.plantas?.toString() || '0') - 1))} plantas</div>
                 </div>
                 <div class="info-item">
-                  <div class="info-label">Plantas</div>
-                  <div class="info-value">${edificioData.plantas}</div>
+                  <div class="info-label">⬇️ Plantas bajo rasante</div>
+                  <div class="info-value">1 sótanos</div>
                 </div>
-                <div class="info-item" style="grid-column: 1 / -1;">
-                  <div class="info-label">Número de Escaleras</div>
+                <div class="info-item">
+                  <div class="info-label">Escaleras</div>
                   <div class="info-value">${edificioData.escaleras}</div>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">🏗️ Año de construcción</div>
+                  <div class="info-value">${edificioData.anyo_construccion || 'No especificado'}</div>
                 </div>
               </div>
             </div>
@@ -766,19 +877,6 @@ function EdificioDetallePageContent() {
           </div>
         </div>
 
-        <div class="section">
-          <div class="section-title">Desglose por Tipo de Propiedad (Total Edificio)</div>
-          <div class="tipos-grid">
-            ${desgloseTipos.map(tipo => `
-              <div class="tipo-card">
-                <div class="tipo-header">${tipo.icon} ${tipo.nombre}</div>
-                <div class="tipo-data">Cantidad: ${tipo.num}</div>
-                <div class="tipo-data">Superficie: ${tipo.m2.toLocaleString()} m²</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-
         ${selectedInmuebles.size > 0 ? `
         <div class="section page-break">
           <div class="section-title-main">Inmuebles Seleccionados (${selectedInmuebles.size} de ${inmuebles.length})</div>
@@ -792,52 +890,10 @@ function EdificioDetallePageContent() {
             ` : ''}
           </div>
           
-          <div class="info-grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-            <div class="info-item">
-              <div class="info-label">Referencia Catastral</div>
-              <div class="info-value">${edificioData.ref_catastral_base}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Total Inmuebles</div>
-              <div class="info-value">${edificioData.total_inmuebles}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Superficie Total</div>
-              <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Superficie Total Construida</div>
-              <div class="info-value">${parseFloat(edificioData.superficie_total?.toString() || '0').toLocaleString()} m²</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Plantas</div>
-              <div class="info-value">${edificioData.plantas}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Plantas</div>
-              <div class="info-value">${edificioData.plantas}</div>
-            </div>
-            <div class="info-item" style="grid-column: 1 / -1;">
-              <div class="info-label">Número de Escaleras</div>
-              <div class="info-value">${edificioData.escaleras}</div>
-            </div>
-          </div>
-          
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">Cantidad Total</div>
-              <div class="info-value">${selectedInmuebles.size}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Superficie Total</div>
-              <div class="info-value">${Array.from(selectedInmuebles).reduce((total, index) => total + parseFloat(inmuebles[index]?.superficie_m2 || '0'), 0).toLocaleString()} m²</div>
-            </div>
-          </div>
-          
           <div class="tipos-grid">
             ${Object.entries(desgloseSeleccionados).map(([tipo, datos]) => `
               <div class="tipo-card">
-                <div class="tipo-header">${datos.icon} ${tipo}</div>
+                <div class="tipo-header">${tipo}</div>
                 <div class="tipo-data">Cantidad: ${datos.cantidad}</div>
                 <div class="tipo-data">Superficie: ${datos.superficie.toLocaleString()} m²</div>
               </div>
@@ -848,26 +904,74 @@ function EdificioDetallePageContent() {
             <thead>
               <tr>
                 <th>Nº Bien</th>
-                <th>Tipo de Uso</th>
+                <th>Tipo</th>
+                <th>Código</th>
+                <th>Bloque</th>
                 <th>Escalera</th>
                 <th>Planta</th>
                 <th>Puerta</th>
-                <th>Superficie (m²)</th>
-                <th>Año Construcción</th>
+                <th>Superficie</th>
               </tr>
             </thead>
             <tbody>
-              ${inmuebleSeleccionadosList.map(inmueble => `
+              ${inmuebleSeleccionadosList.map(inmueble => {
+                // Extraer el código principal limpio
+                const codigoPrincipal = getCodigoPrincipal(inmueble.uso_principal || '')
+                
+                // Obtener la descripción del tipo de uso, usando categorización si no hay descripción
+                let tipoUso = inmueble.uso_descripcion
+                if (!tipoUso || tipoUso === inmueble.uso_principal) {
+                  // Si no hay descripción o es igual al código, usar la categorización
+                  const { categoria } = categorizarInmueble(inmueble.uso_principal, inmueble.uso_descripcion)
+                  switch (categoria) {
+                    case '🏠 RESIDENCIAL':
+                      tipoUso = 'Vivienda'
+                      break
+                    case '🏢 OFICINAS':
+                      tipoUso = 'Oficina'
+                      break
+                    case '🏬 COMERCIAL':
+                      tipoUso = 'Local comercial'
+                      break
+                    case '🚗 APARCAMIENTOS Y TRASTEROS':
+                      tipoUso = inmueble.uso_principal?.includes('AAL') || inmueble.uso_descripcion?.toLowerCase().includes('trastero') ? 'Trastero' : 'Aparcamiento'
+                      break
+                    case '🏭 INDUSTRIAL':
+                      tipoUso = 'Industrial'
+                      break
+                    case '🏊 EQUIPAMIENTOS / DEPORTIVO':
+                      tipoUso = 'Deportivo'
+                      break
+                    case '🏛️ PÚBLICO / DOTACIONAL':
+                      tipoUso = 'Público'
+                      break
+                    case '🛐 RELIGIOSO':
+                      tipoUso = 'Religioso'
+                      break
+                    case '🏨 TURÍSTICO / HOSTELERÍA':
+                      tipoUso = 'Hostelería'
+                      break
+                    case '🧱 SUELO':
+                      tipoUso = 'Suelo'
+                      break
+                    default:
+                      tipoUso = inmueble.uso_descripcion || 'Otros'
+                  }
+                }
+                
+                return `
                 <tr>
                   <td>${inmueble.num_bien}</td>
-                  <td>${inmueble.uso_descripcion}</td>
+                  <td>${tipoUso}</td>
+                  <td style="text-align: center; font-family: monospace;">${codigoPrincipal}</td>
+                  <td>${inmueble.bloque || '-'}</td>
                   <td>${inmueble.escalera || '-'}</td>
                   <td>${inmueble.planta || '-'}</td>
                   <td>${inmueble.puerta || '-'}</td>
-                  <td style="text-align: right;">${parseFloat(inmueble.superficie_m2 || '0').toLocaleString()}</td>
-                  <td>${inmueble.ano_construccion}</td>
+                  <td style="text-align: right;">${parseFloat(inmueble.superficie_m2 || '0').toLocaleString()} m²</td>
                 </tr>
-              `).join('')}
+                `
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -919,28 +1023,81 @@ function EdificioDetallePageContent() {
     setSortConfig({ key, direction })
   }
 
+  // Función para obtener el código principal de uso catastral
+  const getCodigoPrincipal = (uso_principal: string): string => {
+    const codigo = uso_principal?.toUpperCase() || ''
+    
+    // Extraer el primer carácter que corresponde al uso principal según el cuadro 2
+    if (codigo.startsWith('AAP') || codigo.startsWith('AAV') || codigo.startsWith('AAL')) return 'A' // Almacén-Estacionamiento
+    if (codigo.startsWith('A')) return 'A' // Almacén-Estacionamiento
+    if (codigo.startsWith('V')) return 'V' // Residencial
+    if (codigo.startsWith('I')) return 'I' // Industrial
+    if (codigo.startsWith('O')) return 'O' // Oficinas
+    if (codigo.startsWith('C')) return 'C' // Comercial
+    if (codigo.startsWith('K')) return 'K' // Deportivo
+    if (codigo.startsWith('T')) return 'T' // Espectáculos
+    if (codigo.startsWith('G')) return 'G' // Ocio y Hostelería
+    if (codigo.startsWith('Y')) return 'Y' // Sanidad y Beneficencia
+    if (codigo.startsWith('E')) return 'E' // Cultural
+    if (codigo.startsWith('R')) return 'R' // Religioso
+    if (codigo.startsWith('M')) return 'M' // Obras de urbanización y jardinería, suelos sin edificar
+    if (codigo.startsWith('P')) return 'P' // Edificio singular
+    if (codigo.startsWith('B')) return 'B' // Almacén agrario
+    if (codigo.startsWith('J')) return 'J' // Industrial agrario
+    if (codigo.startsWith('Z')) return 'Z' // Agrario
+    
+    return codigo || '?'
+  }
+
+  // Función para obtener la descripción del código principal
+  const getDescripcionCodigo = (codigoPrincipal: string): string => {
+    const descripciones: Record<string, string> = {
+      'A': 'Almacén-Estacionamiento',
+      'V': 'Residencial',
+      'I': 'Industrial',
+      'O': 'Oficinas',
+      'C': 'Comercial',
+      'K': 'Deportivo',
+      'T': 'Espectáculos',
+      'G': 'Ocio y Hostelería',
+      'Y': 'Sanidad y Beneficencia',
+      'E': 'Cultural',
+      'R': 'Religioso',
+      'M': 'Suelos sin edificar',
+      'P': 'Edificio singular',
+      'B': 'Almacén agrario',
+      'J': 'Industrial agrario',
+      'Z': 'Agrario'
+    }
+    return descripciones[codigoPrincipal] || 'Desconocido'
+  }
+
   // Función para categorizar inmuebles por tipo de uso con iconos específicos
   const categorizarInmueble = (uso_principal: string, uso_descripcion: string) => {
     const codigo = uso_principal?.toUpperCase() || ''
     const descripcion = uso_descripcion || ''
     
+    // Debug: mostrar información de categorización
+    console.log(`🔍 Categorizando - Código: "${codigo}", Descripción: "${descripcion}"`)
+    
     // 🏠 RESIDENCIAL
     if (codigo === 'V' || descripcion.toLowerCase().includes('residencial') || descripcion.toLowerCase().includes('vivienda')) {
+      console.log(`✅ RESIDENCIAL: ${codigo} - ${descripcion}`)
       return { categoria: '🏠 RESIDENCIAL', subcategoria: 'Residencial', orden: 1 }
     }
     
     // 🚗 APARCAMIENTOS Y TRASTEROS
-    if (codigo === 'AAP') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento', orden: 2 }
-    if (codigo === 'AAV') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento vinculado a vivienda', orden: 2 }
-    if (codigo === 'AAL') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Almacén / Trastero', orden: 2 }
-    if (codigo === 'A') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Trastero / Almacén (genérico)', orden: 2 }
+    if (codigo === 'AAP') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento', orden: 4 }
+    if (codigo === 'AAV') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento vinculado a vivienda', orden: 4 }
+    if (codigo === 'AAL') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Almacén / Trastero', orden: 4 }
+    if (codigo === 'A') return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Trastero / Almacén (genérico)', orden: 4 }
     
     // Mapear descripciones específicas a trasteros y aparcamientos
     if (descripcion.toLowerCase().includes('trastero') || descripcion.toLowerCase().includes('almacén')) {
-      return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Trastero', orden: 2 }
+      return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Trastero', orden: 4 }
     }
     if (descripcion.toLowerCase().includes('estacionamiento') || descripcion.toLowerCase().includes('aparcamiento') || descripcion.toLowerCase().includes('garaje')) {
-      return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento', orden: 2 }
+      return { categoria: '🚗 APARCAMIENTOS Y TRASTEROS', subcategoria: 'Aparcamiento', orden: 4 }
     }
     
     // 🏬 COMERCIAL
@@ -952,7 +1109,16 @@ function EdificioDetallePageContent() {
     if (codigo.startsWith('C')) return { categoria: '🏬 COMERCIAL', subcategoria: 'Comercio', orden: 3 }
     
     // 🏢 OFICINAS
-    if (codigo === 'O' || codigo.startsWith('O0')) return { categoria: '🏢 OFICINAS', subcategoria: 'Oficinas / Despachos profesionales', orden: 4 }
+    if (codigo === 'O' || codigo.startsWith('O')) {
+      console.log(`✅ OFICINAS: ${codigo} - ${descripcion}`)
+      return { categoria: '🏢 OFICINAS', subcategoria: 'Oficinas / Despachos profesionales', orden: 2 }
+    }
+    
+    // Verificación adicional para códigos que podrían ser oficinas
+    if (descripcion.toLowerCase().includes('oficina') || descripcion.toLowerCase().includes('despacho')) {
+      console.log(`✅ OFICINAS (por descripción): ${codigo} - ${descripcion}`)
+      return { categoria: '🏢 OFICINAS', subcategoria: 'Oficinas / Despachos profesionales', orden: 2 }
+    }
     
     // 🏭 INDUSTRIAL
     if (codigo === 'IEL') return { categoria: '🏭 INDUSTRIAL', subcategoria: 'Instalación eléctrica', orden: 5 }
@@ -981,11 +1147,18 @@ function EdificioDetallePageContent() {
     if (codigo === 'M') return { categoria: '🧱 SUELO', subcategoria: 'Suelo sin edificar', orden: 10 }
     
     // ❓ SIN USO DETALLADO
+    console.log(`❓ SIN USO DETALLADO: "${codigo}" - "${descripcion}"`)
     return { categoria: '❓ SIN USO DETALLADO', subcategoria: 'Otros usos', orden: 11 }
   }
 
   // Función para agrupar inmuebles por categoría
   const getInmueblesAgrupados = () => {
+    // Verificación de seguridad: asegurarse de que inmuebles es un array
+    if (!Array.isArray(inmuebles)) {
+      console.warn('⚠️ inmuebles no es un array:', inmuebles)
+      return {}
+    }
+    
     const agrupados = inmuebles.reduce((acc, inmueble) => {
       const { categoria, subcategoria } = categorizarInmueble(inmueble.uso_principal, inmueble.uso_descripcion)
       
@@ -1014,6 +1187,12 @@ function EdificioDetallePageContent() {
 
   // Función para obtener los inmuebles ordenados
   const getSortedInmuebles = () => {
+    // Verificación de seguridad: asegurarse de que inmuebles es un array
+    if (!Array.isArray(inmuebles)) {
+      console.warn('⚠️ inmuebles no es un array en getSortedInmuebles:', inmuebles)
+      return []
+    }
+    
     // Si no hay configuración de orden, devolver agrupados por categoría
     if (!sortConfig.key) {
       const agrupados = getInmueblesAgrupados()
@@ -1049,26 +1228,75 @@ function EdificioDetallePageContent() {
     return sortedInmuebles
   }
 
+  // Función para comparar datos del resumen vs detallados
+  const getComparacionDatos = () => {
+    if (!edificioData?.distribucion || inmuebles.length === 0) {
+      return null
+    }
+
+    // Conteo desde el listado detallado
+    const agrupados = getInmueblesAgrupados()
+    const conteoDetallado = {
+      residencial: agrupados['🏠 RESIDENCIAL']?.length || 0,
+      aparcamientos: agrupados['🚗 APARCAMIENTOS Y TRASTEROS']?.length || 0,
+      comercial: agrupados['🏬 COMERCIAL']?.length || 0,
+      oficinas: agrupados['🏢 OFICINAS']?.length || 0,
+      sinUso: agrupados['❓ SIN USO DETALLADO']?.length || 0,
+      otros: Object.entries(agrupados)
+        .filter(([categoria]) => !['🏠 RESIDENCIAL', '🚗 APARCAMIENTOS Y TRASTEROS', '🏬 COMERCIAL', '🏢 OFICINAS', '❓ SIN USO DETALLADO'].includes(categoria))
+        .reduce((total, [, grupo]) => total + grupo.length, 0)
+    }
+
+    // Conteo desde el resumen del edificio
+    const dist = edificioData.distribucion
+    const conteoResumen = {
+      residencial: dist.viviendas || 0,
+      aparcamientos: dist.garajes || 0,
+      comercial: dist.comercial || 0,
+      oficinas: dist.oficinas || 0,
+      otros: (dist.locales || 0) + (dist.otros || 0)
+    }
+
+    // Calcular discrepancias
+    const discrepancias = {
+      residencial: conteoDetallado.residencial - conteoResumen.residencial,
+      aparcamientos: conteoDetallado.aparcamientos - conteoResumen.aparcamientos,
+      comercial: conteoDetallado.comercial - conteoResumen.comercial,
+      oficinas: conteoDetallado.oficinas - conteoResumen.oficinas,
+      sinUso: conteoDetallado.sinUso,
+      otros: conteoDetallado.otros - conteoResumen.otros
+    }
+
+    const hayDiscrepancias = Object.values(discrepancias).some(disc => disc !== 0)
+
+    return {
+      conteoResumen,
+      conteoDetallado,
+      discrepancias,
+      hayDiscrepancias
+    }
+  }
+
   // Obtener los inmuebles ordenados para mostrar
   const sortedInmuebles = getSortedInmuebles()
 
   // Función para obtener el desglose por tipo de uso de los inmuebles seleccionados
   const getDesgloseSeleccionados = () => {
-    const desglose: Record<string, { cantidad: number; superficie: number; color: string; icon: string }> = {}
+    const desglose: Record<string, { cantidad: number; superficie: number; color: string; icon: string; orden: number }> = {}
     
-    // Mapeo de colores e iconos por categoría
+    // Mapeo de colores e iconos por categoría con orden de prioridad
     const configPorCategoria = {
-      '🏠 RESIDENCIAL': { color: 'bg-blue-100 text-blue-800 border-blue-300', icon: '🏠' },
-      '🚗 APARCAMIENTOS Y TRASTEROS': { color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🚗' },
-      '🏬 COMERCIAL': { color: 'bg-green-100 text-green-800 border-green-300', icon: '🏬' },
-      '🏢 OFICINAS': { color: 'bg-purple-100 text-purple-800 border-purple-300', icon: '🏢' },
-      '🏭 INDUSTRIAL': { color: 'bg-orange-100 text-orange-800 border-orange-300', icon: '🏭' },
-      '🏊 EQUIPAMIENTOS / DEPORTIVO': { color: 'bg-indigo-100 text-indigo-800 border-indigo-300', icon: '🏊' },
-      '🏛️ PÚBLICO / DOTACIONAL': { color: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '🏛️' },
-      '🛐 RELIGIOSO': { color: 'bg-pink-100 text-pink-800 border-pink-300', icon: '🛐' },
-      '🏨 TURÍSTICO / HOSTELERÍA': { color: 'bg-red-100 text-red-800 border-red-300', icon: '🏨' },
-      '🧱 SUELO': { color: 'bg-stone-100 text-stone-800 border-stone-300', icon: '🧱' },
-      '❓ SIN USO DETALLADO': { color: 'bg-slate-100 text-slate-800 border-slate-300', icon: '❓' }
+      '🏠 RESIDENCIAL': { color: 'bg-blue-100 text-blue-800 border-blue-300', icon: '🏠', orden: 1 },
+      '🏢 OFICINAS': { color: 'bg-purple-100 text-purple-800 border-purple-300', icon: '🏢', orden: 2 },
+      '🏬 COMERCIAL': { color: 'bg-green-100 text-green-800 border-green-300', icon: '🏬', orden: 3 },
+      '🚗 APARCAMIENTOS Y TRASTEROS': { color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🚗', orden: 4 },
+      '🏭 INDUSTRIAL': { color: 'bg-orange-100 text-orange-800 border-orange-300', icon: '🏭', orden: 5 },
+      '🏊 EQUIPAMIENTOS / DEPORTIVO': { color: 'bg-indigo-100 text-indigo-800 border-indigo-300', icon: '🏊', orden: 6 },
+      '🏛️ PÚBLICO / DOTACIONAL': { color: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '🏛️', orden: 7 },
+      '🛐 RELIGIOSO': { color: 'bg-pink-100 text-pink-800 border-pink-300', icon: '🛐', orden: 8 },
+      '🏨 TURÍSTICO / HOSTELERÍA': { color: 'bg-red-100 text-red-800 border-red-300', icon: '🏨', orden: 9 },
+      '🧱 SUELO': { color: 'bg-stone-100 text-stone-800 border-stone-300', icon: '🧱', orden: 10 },
+      '❓ SIN USO DETALLADO': { color: 'bg-slate-100 text-slate-800 border-slate-300', icon: '❓', orden: 11 }
     }
 
     Array.from(selectedInmuebles).forEach(index => {
@@ -1078,13 +1306,14 @@ function EdificioDetallePageContent() {
         
         if (!desglose[categoria]) {
           const config = configPorCategoria[categoria as keyof typeof configPorCategoria] || 
-                        { color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '📋' }
+                        { color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '📋', orden: 99 }
           
           desglose[categoria] = {
             cantidad: 0,
             superficie: 0,
             color: config.color,
-            icon: config.icon
+            icon: config.icon,
+            orden: config.orden
           }
         }
         
@@ -1093,7 +1322,15 @@ function EdificioDetallePageContent() {
       }
     })
 
-    return desglose
+    // Convertir a array, ordenar por orden de prioridad y volver a objeto
+    const desgloseOrdenado = Object.entries(desglose)
+      .sort(([, a], [, b]) => a.orden - b.orden)
+      .reduce((acc, [categoria, datos]) => {
+        acc[categoria] = datos
+        return acc
+      }, {} as Record<string, { cantidad: number; superficie: number; color: string; icon: string; orden: number }>)
+
+    return desgloseOrdenado
   }  // Componente para encabezados de columna ordenables
   const SortableHeader = ({ 
     children, 
@@ -1288,9 +1525,36 @@ function EdificioDetallePageContent() {
           </div>
         )}
 
-        {/* Desglose por Tipo de Propiedad */}
+        {/* Desglose por Tipo de Propiedad - OCULTO EN PRODUCCIÓN */}
+        {false && (
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Desglose por Tipo de Propiedad</h2>
+          
+          {/* Alerta de discrepancias si existen inmuebles cargados */}
+          {inmuebles.length > 0 && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-amber-800">
+                    Comparación de datos: Resumen vs Detalle
+                  </h3>
+                  <div className="mt-2 text-sm text-amber-700">
+                    <p>Los datos del <strong>&quot;Resumen del Edificio&quot;</strong> pueden diferir del <strong>&quot;Listado Detallado&quot;</strong> porque:</p>
+                    <ul className="mt-1 list-disc list-inside space-y-1">
+                      <li>El resumen viene de estadísticas precalculadas del catastro</li>
+                      <li>El listado detallado viene de cada inmueble individual</li>
+                      <li>Pueden usar diferentes métodos de categorización</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {tiposPropiedad.length === 0 ? (
             <p className="text-gray-600 text-center py-8">No hay datos de propiedades disponibles</p>
@@ -1318,7 +1582,16 @@ function EdificioDetallePageContent() {
               ))}
             </div>
           )}
+          
+          {/* Nota explicativa */}
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Nota:</strong> Estos datos provienen del resumen estadístico del catastro. 
+              Para ver la categorización detallada inmueble por inmueble, carga el &quot;Listado Detallado de Inmuebles&quot; más abajo.
+            </p>
+          </div>
         </div>
+        )}
 
         {/* Listado Detallado de Inmuebles */}
         <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mt-8">
@@ -1464,6 +1737,92 @@ function EdificioDetallePageContent() {
                 </div>
               )}
 
+              {/* Mostrar comparación de datos si hay discrepancias - SOLO EN DESARROLLO */}
+              {(() => {
+                // Solo mostrar en entorno de desarrollo
+                if (process.env.NODE_ENV === 'production') return null
+                
+                const comparacion = getComparacionDatos()
+                
+                if (!comparacion?.hayDiscrepancias) return null
+
+                return (
+                  <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <h3 className="text-sm font-medium text-orange-800">
+                          ⚠️ Se encontraron discrepancias entre los datos
+                        </h3>
+                        <div className="mt-2 text-sm text-orange-700">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            <div>
+                              <h4 className="font-medium mb-2">📊 Resumen del Catastro:</h4>
+                              <ul className="space-y-1 text-xs">
+                                <li>🏠 Residencial: {comparacion.conteoResumen.residencial}</li>
+                                <li>🚗 Aparcamientos: {comparacion.conteoResumen.aparcamientos}</li>
+                                <li>🏬 Comercial: {comparacion.conteoResumen.comercial}</li>
+                                <li>🏢 Oficinas: {comparacion.conteoResumen.oficinas}</li>
+                                <li>📦 Otros: {comparacion.conteoResumen.otros}</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="font-medium mb-2">🔍 Listado Detallado:</h4>
+                              <ul className="space-y-1 text-xs">
+                                <li>🏠 Residencial: {comparacion.conteoDetallado.residencial} 
+                                  {comparacion.discrepancias.residencial !== 0 && (
+                                    <span className="ml-1 text-red-600 font-medium">
+                                      ({comparacion.discrepancias.residencial > 0 ? '+' : ''}{comparacion.discrepancias.residencial})
+                                    </span>
+                                  )}
+                                </li>
+                                <li>🚗 Aparcamientos: {comparacion.conteoDetallado.aparcamientos}
+                                  {comparacion.discrepancias.aparcamientos !== 0 && (
+                                    <span className="ml-1 text-red-600 font-medium">
+                                      ({comparacion.discrepancias.aparcamientos > 0 ? '+' : ''}{comparacion.discrepancias.aparcamientos})
+                                    </span>
+                                  )}
+                                </li>
+                                <li>🏬 Comercial: {comparacion.conteoDetallado.comercial}
+                                  {comparacion.discrepancias.comercial !== 0 && (
+                                    <span className="ml-1 text-red-600 font-medium">
+                                      ({comparacion.discrepancias.comercial > 0 ? '+' : ''}{comparacion.discrepancias.comercial})
+                                    </span>
+                                  )}
+                                </li>
+                                <li>🏢 Oficinas: {comparacion.conteoDetallado.oficinas}
+                                  {comparacion.discrepancias.oficinas !== 0 && (
+                                    <span className="ml-1 text-red-600 font-medium">
+                                      ({comparacion.discrepancias.oficinas > 0 ? '+' : ''}{comparacion.discrepancias.oficinas})
+                                    </span>
+                                  )}
+                                </li>
+                                <li>❓ Sin uso detallado: {comparacion.conteoDetallado.sinUso}
+                                  {comparacion.conteoDetallado.sinUso > 0 && (
+                                    <span className="ml-1 text-red-600 font-medium"> ⚠️</span>
+                                  )}
+                                </li>
+                                <li>📦 Otros: {comparacion.conteoDetallado.otros}
+                                  {comparacion.discrepancias.otros !== 0 && (
+                                    <span className="ml-1 text-red-600 font-medium">
+                                      ({comparacion.discrepancias.otros > 0 ? '+' : ''}{comparacion.discrepancias.otros})
+                                    </span>
+                                  )}
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {/* Controles para expandir/colapsar todos los grupos */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-900">Listado Detallado de Inmuebles</h2>
@@ -1533,15 +1892,71 @@ function EdificioDetallePageContent() {
                               {categoria}
                             </h3>
                           </div>
+                          
+                          {/* Checkbox para seleccionar toda la categoría */}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={inmueblesList.every(inmueble => {
+                                const originalIndex = inmuebles.findIndex(item => 
+                                  item.ref_catastral === inmueble.ref_catastral && 
+                                  item.num_bien === inmueble.num_bien
+                                )
+                                return selectedInmuebles.has(originalIndex)
+                              })}
+                              onChange={() => {
+                                const todosSeleccionados = inmueblesList.every(inmueble => {
+                                  const originalIndex = inmuebles.findIndex(item => 
+                                    item.ref_catastral === inmueble.ref_catastral && 
+                                    item.num_bien === inmueble.num_bien
+                                  )
+                                  return selectedInmuebles.has(originalIndex)
+                                })
+                                
+                                if (todosSeleccionados) {
+                                  // Deseleccionar todos de esta categoría
+                                  const newSelection = new Set(selectedInmuebles)
+                                  inmueblesList.forEach(inmueble => {
+                                    const originalIndex = inmuebles.findIndex(item => 
+                                      item.ref_catastral === inmueble.ref_catastral && 
+                                      item.num_bien === inmueble.num_bien
+                                    )
+                                    newSelection.delete(originalIndex)
+                                  })
+                                  setSelectedInmuebles(newSelection)
+                                } else {
+                                  // Seleccionar todos de esta categoría
+                                  const newSelection = new Set(selectedInmuebles)
+                                  inmueblesList.forEach(inmueble => {
+                                    const originalIndex = inmuebles.findIndex(item => 
+                                      item.ref_catastral === inmueble.ref_catastral && 
+                                      item.num_bien === inmueble.num_bien
+                                    )
+                                    if (originalIndex !== -1) newSelection.add(originalIndex)
+                                  })
+                                  setSelectedInmuebles(newSelection)
+                                }
+                              }}
+                              className="rounded border-gray-300"
+                              onClick={(e) => e.stopPropagation()} // Evita que el clic en el checkbox colapse/expanda el grupo
+                            />
+                            <span className="text-xs text-gray-600">
+                              Seleccionar todos
+                            </span>
+                          </div>
                         </div>
                         
                         {/* Resumen compacto con información de selección */}
                         <div className="flex items-center gap-6 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray-900">{inmueblesList.length}</span>
-                            <span>{inmueblesList.length === 1 ? 'inmueble' : 'inmuebles'}</span>
+                            <span>{inmueblesList.length === 1 ? 'elemento' : 'elementos'}</span>
                             {seleccionadosEnCategoria > 0 && (
-                              <span className="text-xs text-green-600 font-medium">
+                              <span className={`text-xs font-medium ${
+                                seleccionadosEnCategoria === inmueblesList.length 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
                                 ({seleccionadosEnCategoria} seleccionado{seleccionadosEnCategoria === 1 ? '' : 's'})
                               </span>
                             )}
@@ -1550,7 +1965,11 @@ function EdificioDetallePageContent() {
                             <span className="font-medium text-gray-900">{superficieTotal.toLocaleString()}</span>
                             <span>m²</span>
                             {superficieSeleccionada > 0 && (
-                              <span className="text-xs text-green-600 font-medium">
+                              <span className={`text-xs font-medium ${
+                                seleccionadosEnCategoria === inmueblesList.length 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
                                 ({superficieSeleccionada.toLocaleString()}m² selec.)
                               </span>
                             )}
@@ -1564,66 +1983,14 @@ function EdificioDetallePageContent() {
                       {/* Contenido desplegable */}
                       {isExpanded && (
                         <div className="border-t border-gray-200">
-                          {/* Checkbox para seleccionar toda la categoría */}
-                          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={inmueblesList.every(inmueble => {
-                                  const originalIndex = inmuebles.findIndex(item => 
-                                    item.ref_catastral === inmueble.ref_catastral && 
-                                    item.num_bien === inmueble.num_bien
-                                  )
-                                  return selectedInmuebles.has(originalIndex)
-                                })}
-                                onChange={() => {
-                                  const todosSeleccionados = inmueblesList.every(inmueble => {
-                                    const originalIndex = inmuebles.findIndex(item => 
-                                      item.ref_catastral === inmueble.ref_catastral && 
-                                      item.num_bien === inmueble.num_bien
-                                    )
-                                    return selectedInmuebles.has(originalIndex)
-                                  })
-                                  
-                                  if (todosSeleccionados) {
-                                    // Deseleccionar todos de esta categoría
-                                    const newSelection = new Set(selectedInmuebles)
-                                    inmueblesList.forEach(inmueble => {
-                                      const originalIndex = inmuebles.findIndex(item => 
-                                        item.ref_catastral === inmueble.ref_catastral && 
-                                        item.num_bien === inmueble.num_bien
-                                      )
-                                      newSelection.delete(originalIndex)
-                                    })
-                                    setSelectedInmuebles(newSelection)
-                                  } else {
-                                    // Seleccionar todos de esta categoría
-                                    const newSelection = new Set(selectedInmuebles)
-                                    inmueblesList.forEach(inmueble => {
-                                      const originalIndex = inmuebles.findIndex(item => 
-                                        item.ref_catastral === inmueble.ref_catastral && 
-                                        item.num_bien === inmueble.num_bien
-                                      )
-                                      if (originalIndex !== -1) newSelection.add(originalIndex)
-                                    })
-                                    setSelectedInmuebles(newSelection)
-                                  }
-                                }}
-                                className="rounded border-gray-300"
-                              />
-                              <span className="text-sm text-gray-700">
-                                Seleccionar/deseleccionar todos los inmuebles de esta categoría
-                              </span>
-                            </label>
-                          </div>
-
                           {/* Tabla de inmuebles */}
-                          <div className="overflow-x-auto">
+                          <div className="overflow-x-auto">{/* Nota: El checkbox para seleccionar toda la categoría está ahora en el header */}
                             <table className="w-full text-sm">
                               <thead className="bg-gray-100">
                                 <tr>
                                   <th className="p-3 text-left font-medium text-gray-700">Selección</th>
                                   <th className="p-3 text-left font-medium text-gray-700">Tipo</th>
+                                  <th className="p-3 text-center font-medium text-gray-700">Código</th>
                                   <th className="p-3 text-left font-medium text-gray-700">Bloque</th>
                                   <th className="p-3 text-left font-medium text-gray-700">Escalera</th>
                                   <th className="p-3 text-left font-medium text-gray-700">Planta</th>
@@ -1659,6 +2026,24 @@ function EdificioDetallePageContent() {
                                           {inmueble.subcategoria}
                                         </span>
                                       </td>
+                                      <td className="p-3 text-center">
+                                        <div className="flex flex-col items-center gap-1">
+                                          <span 
+                                            className="inline-block px-2 py-1 text-sm font-mono font-bold bg-blue-100 text-blue-800 rounded border cursor-help"
+                                            title={`Código principal: ${getCodigoPrincipal(inmueble.uso_principal)} - ${getDescripcionCodigo(getCodigoPrincipal(inmueble.uso_principal))}`}
+                                          >
+                                            {getCodigoPrincipal(inmueble.uso_principal)}
+                                          </span>
+                                          {inmueble.uso_principal !== getCodigoPrincipal(inmueble.uso_principal) && (
+                                            <span 
+                                              className="inline-block px-1 py-0.5 text-xs font-mono bg-gray-100 text-gray-600 rounded border"
+                                              title={`Código completo: ${inmueble.uso_principal}`}
+                                            >
+                                              {inmueble.uso_principal}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
                                       <td className="p-3 text-gray-600">{inmueble.bloque || '-'}</td>
                                       <td className="p-3 text-gray-600">{inmueble.escalera || '-'}</td>
                                       <td className="p-3 text-gray-600">{inmueble.planta || '-'}</td>
@@ -1678,6 +2063,35 @@ function EdificioDetallePageContent() {
                   )
                 })}
               </div>
+              
+              {/* Leyenda de códigos catastrales - SOLO EN DESARROLLO */}
+              {process.env.NODE_ENV !== 'production' && (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h3 className="text-sm font-semibold text-blue-900 mb-3">📋 Códigos de Uso Catastral (Cuadro 2 - Ley del Catastro)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
+                    <div><span className="font-mono font-bold text-blue-800">A</span> - Almacén-Estacionamiento</div>
+                    <div><span className="font-mono font-bold text-blue-800">V</span> - Residencial</div>
+                    <div><span className="font-mono font-bold text-blue-800">I</span> - Industrial</div>
+                    <div><span className="font-mono font-bold text-blue-800">O</span> - Oficinas</div>
+                    <div><span className="font-mono font-bold text-blue-800">C</span> - Comercial</div>
+                    <div><span className="font-mono font-bold text-blue-800">K</span> - Deportivo</div>
+                    <div><span className="font-mono font-bold text-blue-800">T</span> - Espectáculos</div>
+                    <div><span className="font-mono font-bold text-blue-800">G</span> - Ocio y Hostelería</div>
+                    <div><span className="font-mono font-bold text-blue-800">Y</span> - Sanidad y Beneficencia</div>
+                    <div><span className="font-mono font-bold text-blue-800">E</span> - Cultural</div>
+                    <div><span className="font-mono font-bold text-blue-800">R</span> - Religioso</div>
+                    <div><span className="font-mono font-bold text-blue-800">M</span> - Suelos sin edificar</div>
+                    <div><span className="font-mono font-bold text-blue-800">P</span> - Edificio singular</div>
+                    <div><span className="font-mono font-bold text-blue-800">B</span> - Almacén agrario</div>
+                    <div><span className="font-mono font-bold text-blue-800">J</span> - Industrial agrario</div>
+                    <div><span className="font-mono font-bold text-blue-800">Z</span> - Agrario</div>
+                  </div>
+                  <p className="mt-2 text-xs text-blue-700">
+                    <strong>Nota:</strong> Se muestra el código principal (azul) y subcódigo específico (gris) si aplica. 
+                    Pasa el cursor sobre los códigos para ver más detalles.
+                  </p>
+                </div>
+              )}
             </>
           )}
 

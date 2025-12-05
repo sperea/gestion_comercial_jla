@@ -30,6 +30,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "clean": "rm -rf .next node_modules/.cache && echo '🧹 Cache limpiada correctamente'",
+    "dev:clean": "npm run clean && npm run dev",
     "setup:backend": "./scripts/setup-backend.sh",
     "config:local": "echo 'NEXT_PUBLIC_API_URL=/api' > .env.local && echo '✅ Configurado para desarrollo local'",
     "config:external": "echo 'NEXT_PUBLIC_API_URL=http://localhost:3001/api' > .env.local && echo '✅ Configurado para backend externo (puerto 3001)'",

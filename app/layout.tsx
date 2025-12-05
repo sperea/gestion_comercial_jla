@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Auth App - Seguridad Empresarial',
   description: 'Sistema de autenticación seguro con JWT y cookies HTTP-Only',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
