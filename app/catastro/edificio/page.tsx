@@ -1706,6 +1706,63 @@ function EdificioDetallePageContent() {
                         </svg>
                         PDF
                       </button>
+                      <button 
+                        onClick={() => {
+                          const desglose = getDesgloseSeleccionados()
+                          
+                          // Contar piscinas detectadas en los inmuebles seleccionados
+                          let numeroPiscinas = 0
+                          Array.from(selectedInmuebles).forEach(index => {
+                            const inmueble = inmuebles[index]
+                            if (inmueble) {
+                              // Obtener el código completo del uso
+                              const codigoPrincipal = inmueble.uso_principal || ''
+                              const descripcion = inmueble.uso_descripcion?.toLowerCase() || ''
+                              
+                              // Detectar piscinas por código KPS o descripción
+                              if (codigoPrincipal === 'K' || descripcion.includes('kps') || descripcion.includes('piscina')) {
+                                numeroPiscinas++
+                              }
+                            }
+                          })
+                          
+                          const direccionCompleta = edificioData?.direccion ? 
+                            (typeof edificioData.direccion === 'string' ? edificioData.direccion : 
+                             `${edificioData.direccion.tipo_via} ${edificioData.direccion.nombre_via} ${edificioData.direccion.numero}`) : ''
+                          
+                          // Preparar datos para el nuevo proyecto
+                          const datosProyecto = {
+                            rsocial: direccionCompleta,
+                            direccion_linea1: direccionCompleta,
+                            direccion_linea2: edificioData?.direccion && typeof edificioData.direccion !== 'string' ? 
+                              `${edificioData.direccion.cp} ${edificioData.direccion.municipio} (${edificioData.direccion.provincia})` : '',
+                            anyo_construccion: edificioData?.anyo_construccion || '',
+                            anyo_rehabilitacion: edificioData?.anyo_reforma || '',
+                            numero_viviendas: desglose['🏠 RESIDENCIAL']?.cantidad || 0,
+                            numero_locales: (desglose['🏬 COMERCIAL']?.cantidad || 0) + (desglose['🏢 OFICINAS']?.cantidad || 0),
+                            numero_garajes: desglose['🚗 APARCAMIENTOS Y TRASTEROS']?.cantidad || 0,
+                            metros_vivienda: Math.round(desglose['🏠 RESIDENCIAL']?.superficie || 0),
+                            metros_locales: Math.round((desglose['🏬 COMERCIAL']?.superficie || 0) + (desglose['🏢 OFICINAS']?.superficie || 0)),
+                            metros_garaje: Math.round(desglose['🚗 APARCAMIENTOS Y TRASTEROS']?.superficie || 0),
+                            numero_portales: edificioData?.bloques || 0,
+                            alturas_sobre_rasante: edificioData?.plantas_sobre_rasante || 0,
+                            alturas_ajo_rasante: edificioData?.plantas_bajo_rasante || 0,
+                            numero_ascensores: 0,
+                            numero_piscinas: numeroPiscinas,
+                            ref_catastral: refCatastral || ''
+                          }
+                          
+                          // Redirigir con datos en query params
+                          const params = new URLSearchParams(datosProyecto as any).toString()
+                          window.location.href = `/proyectos/comunidades/nuevo?${params}`
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 min-w-[160px]"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
+                        </svg>
+                        Crear Proyecto
+                      </button>
                     </div>
                   </div>
 

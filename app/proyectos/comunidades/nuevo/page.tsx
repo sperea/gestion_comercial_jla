@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -39,6 +39,7 @@ interface FormData {
 export default function NuevoComparativoPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState<FormData>({
@@ -68,6 +69,50 @@ export default function NuevoComparativoPage() {
     vencimiento: '',
     observaciones: ''
   })
+
+  // Cargar datos desde query params al montar el componente
+  useEffect(() => {
+    const rsocial = searchParams.get('rsocial')
+    const direccion_linea1 = searchParams.get('direccion_linea1')
+    const direccion_linea2 = searchParams.get('direccion_linea2')
+    const anyo_construccion = searchParams.get('anyo_construccion')
+    const anyo_rehabilitacion = searchParams.get('anyo_rehabilitacion')
+    const numero_viviendas = searchParams.get('numero_viviendas')
+    const numero_locales = searchParams.get('numero_locales')
+    const numero_garajes = searchParams.get('numero_garajes')
+    const metros_vivienda = searchParams.get('metros_vivienda')
+    const metros_locales = searchParams.get('metros_locales')
+    const metros_garaje = searchParams.get('metros_garaje')
+    const numero_portales = searchParams.get('numero_portales')
+    const alturas_sobre_rasante = searchParams.get('alturas_sobre_rasante')
+    const alturas_ajo_rasante = searchParams.get('alturas_ajo_rasante')
+    const numero_ascensores = searchParams.get('numero_ascensores')
+    const numero_piscinas = searchParams.get('numero_piscinas')
+    const ref_catastral = searchParams.get('ref_catastral')
+
+    if (direccion_linea1 || numero_viviendas) {
+      setFormData(prev => ({
+        ...prev,
+        rsocial: rsocial || '',
+        direccion_linea1: direccion_linea1 || '',
+        direccion_linea2: direccion_linea2 || '',
+        anyo_construccion: anyo_construccion ? parseInt(anyo_construccion) : 0,
+        anyo_rehabilitacion: anyo_rehabilitacion ? parseInt(anyo_rehabilitacion) : 0,
+        numero_viviendas: numero_viviendas ? parseInt(numero_viviendas) : 0,
+        numero_locales: numero_locales ? parseInt(numero_locales) : 0,
+        numero_garajes: numero_garajes ? parseInt(numero_garajes) : 0,
+        metros_vivienda: metros_vivienda ? parseInt(metros_vivienda) : 0,
+        metros_locales: metros_locales ? parseInt(metros_locales) : 0,
+        metros_garaje: metros_garaje ? parseInt(metros_garaje) : 0,
+        numero_portales: numero_portales ? parseInt(numero_portales) : 0,
+        alturas_sobre_rasante: alturas_sobre_rasante ? parseInt(alturas_sobre_rasante) : 0,
+        alturas_ajo_rasante: alturas_ajo_rasante ? parseInt(alturas_ajo_rasante) : 0,
+        numero_ascensores: numero_ascensores ? parseInt(numero_ascensores) : 0,
+        numero_piscinas: numero_piscinas ? parseInt(numero_piscinas) : 0,
+        observaciones: ref_catastral ? `Referencia catastral: ${ref_catastral}` : ''
+      }))
+    }
+  }, [searchParams])
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({
