@@ -558,36 +558,21 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha de Vencimiento
                   </label>
-                  <div className={`text-sm p-3 bg-gray-50 rounded-md ${getVencimientoColor(comparativo.vencimiento)}`}>
-                    {formatDate(comparativo.vencimiento)}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
-                  </label>
                   {isEditing && editedComparativo ? (
                     <input
-                      type="text"
-                      value={editedComparativo.estado || ''}
-                      onChange={(e) => handleFieldChange('estado', e.target.value)}
+                      type="date"
+                      value={editedComparativo.vencimiento ? editedComparativo.vencimiento.split('T')[0] : ''}
+                      onChange={(e) => handleFieldChange('vencimiento', e.target.value)}
                       className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
-                      placeholder="Estado del proyecto"
                     />
                   ) : (
-                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                      {comparativo.estado || 'No definido'}
+                    <div className={`text-sm p-3 bg-gray-50 rounded-md ${getVencimientoColor(comparativo.vencimiento)}`}>
+                      {formatDate(comparativo.vencimiento)}
                     </div>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número de Columnas
-                  </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.numero_columnas}
-                  </div>
-                </div>
+                {/* Estado oculto - no se usa */}
+                {/* Número de Columnas oculto - ya se muestra en el header */}
               </div>
               
               <div className="mt-6">
