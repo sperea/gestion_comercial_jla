@@ -96,6 +96,7 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
 
   // Estados principales
   const [comparativo, setComparativo] = useState<ProyectoComunidad | null>(null)
+  const [editedComparativo, setEditedComparativo] = useState<ProyectoComunidad | null>(null)
   const [columnasComparativo, setColumnasComparativo] = useState<ColumnaComparativo[]>([])
   const [columnasDefault, setColumnasDefault] = useState<ColumnaComparativoDefault[]>([])
   const [companias, setCompanias] = useState<Compania[]>([])  // Estados de paginación para tabla comparativo
@@ -105,6 +106,8 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
   
   // Estados de control
   const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState<'comparativo' | 'columnas' | 'ficheros'>('comparativo')
   const [error, setError] = useState<string | null>(null)
 
@@ -137,6 +140,7 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
       if (response.ok) {
         const data = await response.json()
         setComparativo(data)
+        setEditedComparativo(data)
       } else {
         setError('No se pudo cargar el proyecto')
       }
@@ -203,6 +207,63 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
       console.error('Error fetching ficheros:', error)
     }
   }, [proyectoId, fetchIntranetData])
+
+  // Función para actualizar un campo del comparativo
+  const handleFieldChange = useCallback((field: keyof ProyectoComunidad, value: any) => {
+    setEditedComparativo(prev => {
+      if (!prev) return prev
+      return { ...prev, [field]: value }
+    })
+  }, [])
+
+  // Función para activar modo edición
+  const handleStartEdit = useCallback(() => {
+    setIsEditing(true)
+  }, [])
+
+  // Función para cancelar edición
+  const handleCancelEdit = useCallback(() => {
+    setEditedComparativo(comparativo)
+    setIsEditing(false)
+  }, [comparativo])
+
+  // Función para guardar cambios en el comparativo
+  const handleSaveChanges = useCallback(async () => {
+    if (!editedComparativo) return
+    
+    setIsSaving(true)
+    try {
+      console.log('💾 [SAVE] Guardando cambios del comparativo:', proyectoId)
+      console.log('📋 [SAVE] Datos a enviar:', editedComparativo)
+      
+      const response = await fetchIntranetData(`/proyectos-comunidad/${proyectoId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(editedComparativo),
+      })
+      
+      if (response.ok) {
+        const updatedData = await response.json()
+        console.log('✅ [SAVE] Cambios guardados exitosamente:', updatedData)
+        
+        // Actualizar ambos estados con los datos del servidor
+        setComparativo(updatedData)
+        setEditedComparativo(updatedData)
+        setIsEditing(false)
+        
+        alert('✅ Cambios guardados exitosamente')
+      } else {
+        console.error('❌ [SAVE] Error al guardar:', response.status)
+        const errorText = await response.text()
+        console.error('❌ [SAVE] Error details:', errorText)
+        alert('❌ Error al guardar los cambios')
+      }
+    } catch (error) {
+      console.error('💥 [SAVE] Error en guardado:', error)
+      alert('💥 Error al guardar los cambios')
+    } finally {
+      setIsSaving(false)
+    }
+  }, [editedComparativo, proyectoId, fetchIntranetData])
 
   // Cargar todos los datos iniciales
   useEffect(() => {
@@ -400,7 +461,58 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
           <div className="space-y-6">
             {/* Información Básica del Comparativo */}
             <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Información Básica</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Información Básica</h3>
+                <div className="flex gap-2">
+                  {!isEditing ? (
+                    <button
+                      onClick={handleStartEdit}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Editar
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isSaving ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Guardando...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6a1 1 0 10-2 0v5.586L7.707 10.293zM5 16a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"/>
+                              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v1a1 1 0 11-2 0V5H5v10h10v-1a1 1 0 112 0v1a1 1 0 01-1 1H4a1 1 0 01-1-1V4z" clipRule="evenodd"/>
+                            </svg>
+                            Guardar Cambios
+                          </>
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -454,9 +566,19 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Estado
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.estado || 'No definido'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="text"
+                      value={editedComparativo.estado || ''}
+                      onChange={(e) => handleFieldChange('estado', e.target.value)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      placeholder="Estado del proyecto"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.estado || 'No definido'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -468,16 +590,24 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                 </div>
               </div>
               
-              {comparativo.observaciones && (
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Observaciones
-                  </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.observaciones}
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observaciones
+                </label>
+                {isEditing && editedComparativo ? (
+                  <textarea
+                    value={editedComparativo.observaciones || ''}
+                    onChange={(e) => handleFieldChange('observaciones', e.target.value)}
+                    rows={4}
+                    className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                    placeholder="Escribe las observaciones aquí..."
+                  />
+                ) : (
+                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md min-h-[100px]">
+                    {comparativo.observaciones || 'Sin observaciones'}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Dirección */}
@@ -488,17 +618,37 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Dirección Línea 1
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.direccion_linea1 || 'No especificada'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="text"
+                      value={editedComparativo.direccion_linea1 || ''}
+                      onChange={(e) => handleFieldChange('direccion_linea1', e.target.value)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      placeholder="Dirección línea 1"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.direccion_linea1 || 'No especificada'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Dirección Línea 2
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.direccion_linea2 || 'No especificada'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="text"
+                      value={editedComparativo.direccion_linea2 || ''}
+                      onChange={(e) => handleFieldChange('direccion_linea2', e.target.value)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      placeholder="Dirección línea 2"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.direccion_linea2 || 'No especificada'}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -511,73 +661,175 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Año de Construcción
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.anyo_construccion || 'No especificado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.anyo_construccion || ''}
+                      onChange={(e) => handleFieldChange('anyo_construccion', e.target.value)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      placeholder="Año"
+                      min="1800"
+                      max="3000"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.anyo_construccion || 'No especificado'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Año de Rehabilitación
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.anyo_rehabilitacion || 'No rehabilitado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.anyo_rehabilitacion || ''}
+                      onChange={(e) => handleFieldChange('anyo_rehabilitacion', e.target.value)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      placeholder="Año (opcional)"
+                      min="1800"
+                      max="3000"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.anyo_rehabilitacion || 'No rehabilitado'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tipo de Rehabilitación
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.tipo_rehabilitacion || 'Ninguna'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <select
+                      value={editedComparativo.tipo_rehabilitacion || 'N'}
+                      onChange={(e) => handleFieldChange('tipo_rehabilitacion', e.target.value)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="N">Ninguna</option>
+                      <option value="T">Total</option>
+                      <option value="P">Parcial</option>
+                    </select>
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.tipo_rehabilitacion === 'N' ? 'Ninguna' : 
+                       comparativo.tipo_rehabilitacion === 'T' ? 'Total' : 
+                       comparativo.tipo_rehabilitacion === 'P' ? 'Parcial' : 'Ninguna'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Portales
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.numero_portales || 0}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.numero_portales || 0}
+                      onChange={(e) => handleFieldChange('numero_portales', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      min="0"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.numero_portales || 0}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Alturas sobre Rasante
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.alturas_sobre_rasante || 'No especificado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.alturas_sobre_rasante || 0}
+                      onChange={(e) => handleFieldChange('alturas_sobre_rasante', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      min="0"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.alturas_sobre_rasante || 'No especificado'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Alturas bajo Rasante
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.alturas_ajo_rasante || 'No especificado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.alturas_ajo_rasante || 0}
+                      onChange={(e) => handleFieldChange('alturas_ajo_rasante', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.alturas_ajo_rasante || 'No especificado'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tipo de Calefacción
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.tipo_calefaccion || 'No especificado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <select
+                      value={editedComparativo.tipo_calefaccion || 'NO TIENE'}
+                      onChange={(e) => handleFieldChange('tipo_calefaccion', e.target.value)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="NO TIENE">NO TIENE</option>
+                      <option value="CENTRAL">CENTRAL</option>
+                      <option value="INDIVIDUAL">INDIVIDUAL</option>
+                    </select>
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.tipo_calefaccion || 'NO TIENE'}
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Portero
+                  <label className="flex items-center space-x-3 cursor-pointer pt-8">
+                    {isEditing && editedComparativo ? (
+                      <input
+                        type="checkbox"
+                        checked={editedComparativo.portero || false}
+                        onChange={(e) => handleFieldChange('portero', e.target.checked)}
+                        className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 flex items-center justify-center border-2 rounded" style={{borderColor: comparativo.portero ? '#d2212b' : '#d1d5db', backgroundColor: comparativo.portero ? '#d2212b' : 'transparent'}}>
+                        {comparativo.portero && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-gray-700">Tiene Portero</span>
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.portero || 'No especificado'}
-                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Ascensores
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.numero_ascensores || 0}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.numero_ascensores || 0}
+                      onChange={(e) => handleFieldChange('numero_ascensores', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      min="0"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.numero_ascensores || 0}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -590,49 +842,112 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Viviendas
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md font-semibold">
-                    {comparativo.numero_viviendas || 0}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.numero_viviendas || 0}
+                      onChange={(e) => handleFieldChange('numero_viviendas', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 font-semibold"
+                      min="0"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md font-semibold">
+                      {comparativo.numero_viviendas || 0}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Locales
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md font-semibold">
-                    {comparativo.numero_locales || 0}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.numero_locales || 0}
+                      onChange={(e) => handleFieldChange('numero_locales', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 font-semibold"
+                      min="0"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md font-semibold">
+                      {comparativo.numero_locales || 0}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Garajes
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md font-semibold">
-                    {comparativo.numero_garajes || 0}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.numero_garajes || 0}
+                      onChange={(e) => handleFieldChange('numero_garajes', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500 font-semibold"
+                      min="0"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md font-semibold">
+                      {comparativo.numero_garajes || 0}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Metros² Vivienda
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.metros_vivienda ? `${comparativo.metros_vivienda} m²` : 'No especificado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.metros_vivienda || 0}
+                      onChange={(e) => handleFieldChange('metros_vivienda', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      min="0"
+                      placeholder="m²"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.metros_vivienda ? `${comparativo.metros_vivienda} m²` : 'No especificado'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Metros² Locales
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.metros_locales ? `${comparativo.metros_locales} m²` : 'No especificado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.metros_locales || 0}
+                      onChange={(e) => handleFieldChange('metros_locales', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      min="0"
+                      placeholder="m²"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.metros_locales ? `${comparativo.metros_locales} m²` : 'No especificado'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Metros² Garaje
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.metros_garaje ? `${comparativo.metros_garaje} m²` : 'No especificado'}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.metros_garaje || 0}
+                      onChange={(e) => handleFieldChange('metros_garaje', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      min="0"
+                      placeholder="m²"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.metros_garaje ? `${comparativo.metros_garaje} m²` : 'No especificado'}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -645,17 +960,40 @@ export default function ProyectoComunidadEditPage({ params }: PageProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Piscinas
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.numero_piscinas || 0}
-                  </div>
+                  {isEditing && editedComparativo ? (
+                    <input
+                      type="number"
+                      value={editedComparativo.numero_piscinas || 0}
+                      onChange={(e) => handleFieldChange('numero_piscinas', parseInt(e.target.value) || 0)}
+                      className="w-full text-sm text-gray-900 p-3 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+                      min="0"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {comparativo.numero_piscinas || 0}
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Urbanización
+                  <label className="flex items-center space-x-3 cursor-pointer pt-8">
+                    {isEditing && editedComparativo ? (
+                      <input
+                        type="checkbox"
+                        checked={editedComparativo.urbanizacion || false}
+                        onChange={(e) => handleFieldChange('urbanizacion', e.target.checked)}
+                        className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 flex items-center justify-center border-2 rounded" style={{borderColor: comparativo.urbanizacion ? '#d2212b' : '#d1d5db', backgroundColor: comparativo.urbanizacion ? '#d2212b' : 'transparent'}}>
+                        {comparativo.urbanizacion && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
+                    <span className="text-sm font-medium text-gray-700">Urbanización</span>
                   </label>
-                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
-                    {comparativo.urbanizacion || 'No especificada'}
-                  </div>
                 </div>
               </div>
             </div>
