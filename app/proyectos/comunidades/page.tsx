@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { config } from '@/lib/config'
 
 // Interface para el tipo de datos de la API
 interface ComunidadData {
@@ -219,7 +220,7 @@ export default function ComunidadesPage() {
   const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'https://api.jlaasociados.net'
 
   const handleViewPdf = (itemId: number) => {
-    const url = `${getApiUrl()}/cuadrocomparativopdf/${itemId}/`
+    const url = `${config.intranetApiUrl}/cuadrocomparativopdf/${itemId}/`
     window.open(url, '_blank')
   }
 

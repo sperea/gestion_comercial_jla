@@ -79,6 +79,21 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'portal.jlaasociados.net',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'portal.jlaasociados.net',
+        pathname: '/img/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'portal.jlaasociados.net',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'logo.clearbit.com',
         pathname: '/**',
       },
