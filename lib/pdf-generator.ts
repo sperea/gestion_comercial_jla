@@ -34,23 +34,42 @@ export async function generateProyectoPDF(
 ) {
   const doc = new jsPDF()
   
+  // Cargar logo
+  let logoDataUrl: string | null = null
+  try {
+    const response = await fetch('/img/logo.webp')
+    const blob = await response.blob()
+    logoDataUrl = await new Promise<string>((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.readAsDataURL(blob)
+    })
+  } catch (error) {
+    console.error('Error loading logo:', error)
+  }
+  
   // PORTADA
+  // Logo en la parte superior
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, 'WEBP', 70, 30, 70, 35)
+    } catch (error) {
+      console.error('Error adding logo to PDF:', error)
+    }
+  }
+  
   doc.setFontSize(24)
   doc.setTextColor(...COLORS.primary)
-  doc.text('PROYECTO DE SEGURO', doc.internal.pageSize.getWidth() / 2, 80, { align: 'center' })
-  doc.text('TODO RIESGO CONSTRUCCIÓN', doc.internal.pageSize.getWidth() / 2, 100, { align: 'center' })
+  doc.text('PROYECTO DE SEGURO', doc.internal.pageSize.getWidth() / 2, 90, { align: 'center' })
+  doc.text('TODO RIESGO CONSTRUCCIÓN', doc.internal.pageSize.getWidth() / 2, 110, { align: 'center' })
   
   doc.setFontSize(16)
   doc.setTextColor(...COLORS.darkGray)
   doc.setFont('helvetica', 'bold')
-  doc.text(proyecto.tomador, doc.internal.pageSize.getWidth() / 2, 140, { align: 'center' })
+  doc.text(proyecto.tomador, doc.internal.pageSize.getWidth() / 2, 150, { align: 'center' })
   
   doc.setFont('helvetica', 'normal')
-  doc.text(proyecto.obra, doc.internal.pageSize.getWidth() / 2, 160, { align: 'center' })
-  
-  // TODO: Añadir logo JLA si está disponible
-  // const logoUrl = '/logo-jla.png'
-  // doc.addImage(logoUrl, 'PNG', 80, 30, 50, 25)
+  doc.text(proyecto.obra, doc.internal.pageSize.getWidth() / 2, 170, { align: 'center' })
   
   // PÁGINA POR CADA OFERTA
   ofertas.forEach((oferta, index) => {
