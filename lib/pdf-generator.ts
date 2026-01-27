@@ -49,10 +49,16 @@ export async function generateProyectoPDF(
   }
   
   // PORTADA
-  // Logo en la parte superior
+  // Logo en la parte superior (mantener relación de aspecto)
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, 'PNG', 70, 30, 70, 35)
+      const logoWidth = 60
+      const img = new Image()
+      img.src = logoDataUrl
+      const aspectRatio = img.height / img.width
+      const logoHeight = logoWidth * aspectRatio
+      
+      doc.addImage(logoDataUrl, 'PNG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 30, logoWidth, logoHeight)
     } catch (error) {
       console.error('Error adding logo to PDF:', error)
     }
@@ -74,6 +80,21 @@ export async function generateProyectoPDF(
   // PÁGINA POR CADA OFERTA
   ofertas.forEach((oferta, index) => {
     doc.addPage()
+    
+    // Logo en esquina superior derecha
+    if (logoDataUrl) {
+      try {
+        const logoWidth = 40
+        const img = new Image()
+        img.src = logoDataUrl
+        const aspectRatio = img.height / img.width
+        const logoHeight = logoWidth * aspectRatio
+        
+        doc.addImage(logoDataUrl, 'PNG', doc.internal.pageSize.getWidth() - logoWidth - 14, 10, logoWidth, logoHeight)
+      } catch (error) {
+        console.error('Error adding logo to offer page:', error)
+      }
+    }
     
     // Título de la oferta
     doc.setFontSize(14)
@@ -118,13 +139,13 @@ export async function generateProyectoPDF(
         `${proyecto.duracion} meses`
       ]],
       headStyles: {
-        fillColor: COLORS.secondary,
+        fillColor: COLORS.primary,
         textColor: COLORS.white,
         fontStyle: 'bold',
         halign: 'center'
       },
       bodyStyles: {
-        fillColor: COLORS.mediumGray,
+        fillColor: COLORS.lightGray,
         halign: 'center'
       },
       theme: 'grid'
@@ -170,7 +191,7 @@ export async function generateProyectoPDF(
         `${oferta.prima_total} €`
       ]],
       headStyles: {
-        fillColor: COLORS.darkGray,
+        fillColor: COLORS.primary,
         textColor: COLORS.white,
         fontStyle: 'bold',
         halign: 'center'
