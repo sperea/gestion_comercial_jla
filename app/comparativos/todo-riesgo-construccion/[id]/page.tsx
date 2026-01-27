@@ -78,21 +78,15 @@ export default function ProyectoDetallePage() {
   }
 
   const handleDownloadPDF = async () => {
-    const api = new TodoRiesgoAPI()
+    if (!project) return
     
     try {
       addToast({ type: 'success', message: 'Generando PDF...' })
-      const blob = await api.downloadProyectoPDF(id)
       
-      // Crear URL del blob y descargar
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `proyecto_${id}_${project?.obra.replace(/\s+/g, '_')}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      // Importar dinámicamente para evitar problemas de SSR
+      const { generateProyectoPDF } = await import('@/lib/pdf-generator')
+      
+      generateProyectoPDF(project, offers)
       
       addToast({ type: 'success', message: 'PDF descargado correctamente' })
     } catch (err) {
