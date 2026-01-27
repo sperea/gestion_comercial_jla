@@ -34,16 +34,35 @@ export async function generateProyectoPDF(
 ) {
   const doc = new jsPDF()
   
-  // Cargar logo PNG
+  // Cargar logo PNG y obtener dimensiones
   let logoDataUrl: string | null = null
+  let logoAspectRatio = 1
+  
   try {
     const response = await fetch('/logo.png')
     const blob = await response.blob()
+    
+    // Crear imagen para obtener dimensiones
+    const img = new Image()
+    const imageUrl = URL.createObjectURL(blob)
+    
+    await new Promise((resolve, reject) => {
+      img.onload = () => {
+        logoAspectRatio = img.height / img.width
+        resolve(null)
+      }
+      img.onerror = reject
+      img.src = imageUrl
+    })
+    
+    // Convertir a data URL
     logoDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader()
       reader.onloadend = () => resolve(reader.result as string)
       reader.readAsDataURL(blob)
     })
+    
+    URL.revokeObjectURL(imageUrl)
   } catch (error) {
     console.error('Error loading logo:', error)
   }
@@ -53,10 +72,7 @@ export async function generateProyectoPDF(
   if (logoDataUrl) {
     try {
       const logoWidth = 60
-      const img = new Image()
-      img.src = logoDataUrl
-      const aspectRatio = img.height / img.width
-      const logoHeight = logoWidth * aspectRatio
+      const logoHeight = logoWidth * logoAspectRatio
       
       doc.addImage(logoDataUrl, 'PNG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 30, logoWidth, logoHeight)
     } catch (error) {
@@ -85,10 +101,7 @@ export async function generateProyectoPDF(
     if (logoDataUrl) {
       try {
         const logoWidth = 40
-        const img = new Image()
-        img.src = logoDataUrl
-        const aspectRatio = img.height / img.width
-        const logoHeight = logoWidth * aspectRatio
+        const logoHeight = logoWidth * logoAspectRatio
         
         doc.addImage(logoDataUrl, 'PNG', doc.internal.pageSize.getWidth() - logoWidth - 14, 10, logoWidth, logoHeight)
       } catch (error) {
