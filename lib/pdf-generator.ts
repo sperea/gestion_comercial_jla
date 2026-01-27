@@ -34,41 +34,16 @@ export async function generateProyectoPDF(
 ) {
   const doc = new jsPDF()
   
-  // Cargar y convertir logo a PNG con fondo blanco
+  // Cargar logo PNG
   let logoDataUrl: string | null = null
   try {
-    const response = await fetch('/img/logo.webp')
+    const response = await fetch('/logo.png')
     const blob = await response.blob()
-    
-    // Crear una imagen temporal
-    const img = new Image()
-    const imageUrl = URL.createObjectURL(blob)
-    
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = reject
-      img.src = imageUrl
+    logoDataUrl = await new Promise<string>((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.readAsDataURL(blob)
     })
-    
-    // Crear canvas y dibujar la imagen con fondo blanco
-    const canvas = document.createElement('canvas')
-    canvas.width = img.width
-    canvas.height = img.height
-    const ctx = canvas.getContext('2d')
-    
-    if (ctx) {
-      // Fondo blanco
-      ctx.fillStyle = '#FFFFFF'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      
-      // Dibujar imagen encima
-      ctx.drawImage(img, 0, 0)
-      
-      // Convertir a PNG
-      logoDataUrl = canvas.toDataURL('image/png')
-    }
-    
-    URL.revokeObjectURL(imageUrl)
   } catch (error) {
     console.error('Error loading logo:', error)
   }
