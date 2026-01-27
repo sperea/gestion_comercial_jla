@@ -77,6 +77,30 @@ export default function ProyectoDetallePage() {
     }
   }
 
+  const handleDownloadPDF = async () => {
+    const api = new TodoRiesgoAPI()
+    
+    try {
+      addToast({ type: 'success', message: 'Generando PDF...' })
+      const blob = await api.downloadProyectoPDF(id)
+      
+      // Crear URL del blob y descargar
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `proyecto_${id}_${project?.obra.replace(/\s+/g, '_')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      addToast({ type: 'success', message: 'PDF descargado correctamente' })
+    } catch (err) {
+      console.error('Error downloading PDF:', err)
+      addToast({ type: 'error', message: 'Error al generar el PDF' })
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -110,6 +134,9 @@ export default function ProyectoDetallePage() {
           <p className="text-gray-600">{project.tomador}</p>
         </div>
         <div className="flex gap-3">
+          <Button variant="outline" onClick={handleDownloadPDF} className="text-blue-600 border-blue-200 hover:bg-blue-50">
+            📄 Descargar PDF
+          </Button>
           {/* Edit button could go here */}
           <Button variant="outline" onClick={handleDeleteProject} className="text-red-600 border-red-200 hover:bg-red-50">
             Eliminar Proyecto

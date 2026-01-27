@@ -139,6 +139,18 @@ export class TodoRiesgoAPI {
     if (!response.ok) throw new Error(`Error deleting proyecto ${id}: ${response.statusText}`)
   }
 
+  async downloadProyectoPDF(id: number): Promise<Blob> {
+    const url = buildUrl(`${API_ENDPOINTS.todoRiesgo.proyectos}${id}/generar_pdf/`)
+    
+    const response = await fetchWithCredentials(url, {
+      method: 'GET',
+      headers: this.getHeaders()
+    })
+    
+    if (!response.ok) throw new Error(`Error downloading PDF for proyecto ${id}: ${response.statusText}`)
+    return response.blob()
+  }
+
   // --- Coberturas ---
 
   async getCoberturas(search?: string): Promise<PaginatedResponse<Cobertura>> {
