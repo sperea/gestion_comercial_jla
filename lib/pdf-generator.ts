@@ -111,7 +111,7 @@ export async function generateProyectoPDF(
     // Logo alineado con el título (misma altura)
     if (logoDataUrl) {
       try {
-        const logoWidth = 35
+        const logoWidth = 45
         const logoHeight = logoWidth * logoAspectRatio
         // Centrar verticalmente con el texto del título
         const logoY = titleY - (logoHeight / 2) - 2
