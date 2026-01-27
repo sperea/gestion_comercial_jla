@@ -34,16 +34,41 @@ export async function generateProyectoPDF(
 ) {
   const doc = new jsPDF()
   
-  // Cargar logo
+  // Cargar y convertir logo a PNG con fondo blanco
   let logoDataUrl: string | null = null
   try {
     const response = await fetch('/img/logo.webp')
     const blob = await response.blob()
-    logoDataUrl = await new Promise<string>((resolve) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result as string)
-      reader.readAsDataURL(blob)
+    
+    // Crear una imagen temporal
+    const img = new Image()
+    const imageUrl = URL.createObjectURL(blob)
+    
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+      img.src = imageUrl
     })
+    
+    // Crear canvas y dibujar la imagen con fondo blanco
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    
+    if (ctx) {
+      // Fondo blanco
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      
+      // Dibujar imagen encima
+      ctx.drawImage(img, 0, 0)
+      
+      // Convertir a PNG
+      logoDataUrl = canvas.toDataURL('image/png')
+    }
+    
+    URL.revokeObjectURL(imageUrl)
   } catch (error) {
     console.error('Error loading logo:', error)
   }
@@ -52,7 +77,7 @@ export async function generateProyectoPDF(
   // Logo en la parte superior
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, 'WEBP', 70, 30, 70, 35)
+      doc.addImage(logoDataUrl, 'PNG', 70, 30, 70, 35)
     } catch (error) {
       console.error('Error adding logo to PDF:', error)
     }
