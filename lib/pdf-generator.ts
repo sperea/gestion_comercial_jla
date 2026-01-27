@@ -68,13 +68,13 @@ export async function generateProyectoPDF(
   }
   
   // PORTADA
-  // Logo en la parte superior (mantener relación de aspecto)
+  // Logo en la parte superior (más grande)
   if (logoDataUrl) {
     try {
-      const logoWidth = 60
+      const logoWidth = 80
       const logoHeight = logoWidth * logoAspectRatio
       
-      doc.addImage(logoDataUrl, 'PNG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 30, logoWidth, logoHeight)
+      doc.addImage(logoDataUrl, 'PNG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 25, logoWidth, logoHeight)
     } catch (error) {
       console.error('Error adding logo to PDF:', error)
     }
@@ -97,31 +97,34 @@ export async function generateProyectoPDF(
   ofertas.forEach((oferta, index) => {
     doc.addPage()
     
-    // Logo en esquina superior derecha
+    // Título de la oferta
+    doc.setFontSize(14)
+    doc.setTextColor(...COLORS.primary)
+    doc.setFont('helvetica', 'bold')
+    const titleY = 20
+    doc.text(
+      `OFERTA ${index + 1} - ${oferta.compania_info?.rsocial || 'N/A'}`,
+      14,
+      titleY
+    )
+    
+    // Logo alineado con el título (misma altura)
     if (logoDataUrl) {
       try {
-        const logoWidth = 40
+        const logoWidth = 35
         const logoHeight = logoWidth * logoAspectRatio
+        // Centrar verticalmente con el texto del título
+        const logoY = titleY - (logoHeight / 2) - 2
         
-        doc.addImage(logoDataUrl, 'PNG', doc.internal.pageSize.getWidth() - logoWidth - 14, 10, logoWidth, logoHeight)
+        doc.addImage(logoDataUrl, 'PNG', doc.internal.pageSize.getWidth() - logoWidth - 14, logoY, logoWidth, logoHeight)
       } catch (error) {
         console.error('Error adding logo to offer page:', error)
       }
     }
     
-    // Título de la oferta
-    doc.setFontSize(14)
-    doc.setTextColor(...COLORS.primary)
-    doc.setFont('helvetica', 'bold')
-    doc.text(
-      `OFERTA ${index + 1} - ${oferta.compania_info?.rsocial || 'N/A'}`,
-      14,
-      20
-    )
-    
-    // Tabla de información general
+    // Tabla de información general (con más margen después del encabezado)
     autoTable(doc, {
-      startY: 30,
+      startY: 40,
       head: [['FECHA', 'ASEGURADORA', 'OBRA', 'EMPRESA']],
       body: [[
         new Date(proyecto.fecha_creacion).toLocaleDateString('es-ES'),
