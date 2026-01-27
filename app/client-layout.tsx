@@ -6,24 +6,16 @@ import { GroupProvider } from '@/context/GroupContext'
 import { ProtectedRoute } from '@/components/ui/ProtectedRoute'
 import { Toaster } from 'react-hot-toast'
 
-import { usePathname } from 'next/navigation'
-import { isPublicRoute } from '@/lib/auth-utils'
-import Header from '@/components/ui/Header'
-
 interface ClientLayoutProps {
   children: React.ReactNode
 }
 
 export default function ClientLayout({ children }: ClientLayoutProps) {
-  const pathname = usePathname()
-  const showHeader = !isPublicRoute(pathname)
-
   return (
     <ToastProvider>
       <AuthProvider>
         <GroupProvider>
           <ProtectedRoute>
-            {showHeader && <Header />}
             {children}
           </ProtectedRoute>
           <Toaster
