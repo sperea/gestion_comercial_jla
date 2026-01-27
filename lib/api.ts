@@ -129,7 +129,7 @@ async function fetchWithCredentialsInternal(url: string, options: RequestInit = 
   const headers = new Headers(options.headers)
   
   // Para llamadas al backend Django, obtener token JWT desde las cookies HTTP-Only
-  if (url.includes('api.jlaasociados.net')) {
+  if (url.includes('api.jlaasociados.net') || url.includes('localhost') || url.includes('127.0.0.1')) {
     try {
       const tokenResponse = await fetch('/api/auth/token', {
         method: 'GET',

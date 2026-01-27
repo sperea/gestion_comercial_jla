@@ -11,10 +11,8 @@ export default function Header() {
   const { user, logout, loading } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
-  const [isProyectosMenuOpen, setIsProyectosMenuOpen] = useState(false)
   const [isIAMenuOpen, setIsIAMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
-  const proyectosMenuRef = useRef<HTMLDivElement>(null)
   const iaMenuRef = useRef<HTMLDivElement>(null)
 
   // Cerrar menús cuando se hace clic fuera
@@ -22,9 +20,6 @@ export default function Header() {
     function handleClickOutside(event: MouseEvent) {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setIsProfileMenuOpen(false)
-      }
-      if (proyectosMenuRef.current && !proyectosMenuRef.current.contains(event.target as Node)) {
-        setIsProyectosMenuOpen(false)
       }
       if (iaMenuRef.current && !iaMenuRef.current.contains(event.target as Node)) {
         setIsIAMenuOpen(false)
@@ -122,36 +117,9 @@ export default function Header() {
               Catastro
             </Link>
             
-            {/* Menú Proyectos con dropdown */}
-            <div className="relative" ref={proyectosMenuRef}>
-              <button
-                onClick={() => setIsProyectosMenuOpen(!isProyectosMenuOpen)}
-                className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-1"
-              >
-                <span>Comparativos</span>
-                <svg className={`h-4 w-4 transition-transform ${isProyectosMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {/* Dropdown de Proyectos */}
-              {isProyectosMenuOpen && (
-                <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                  <div className="py-1">
-                    <Link
-                      href="/proyectos/comunidades"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      onClick={() => setIsProyectosMenuOpen(false)}
-                    >
-                      <svg className="mr-3 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      Proyectos de Comunidades
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+            <Link href="/comparativos" className="text-gray-900 hover:text-primary px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              Comparativos
+            </Link>
 
             {/* Menú IA con dropdown */}
             <div className="relative" ref={iaMenuRef}>
@@ -304,14 +272,10 @@ export default function Header() {
             <Link href="/catastro" className="text-gray-900 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
               Catastro
             </Link>
-            <div className="space-y-1">
-              <div className="text-gray-900 px-3 py-2 rounded-md text-base font-medium">
-                Proyectos
-              </div>
-              <Link href="/proyectos/comunidades" className="text-gray-700 hover:text-primary block px-6 py-2 rounded-md text-sm">
-                Proyectos de Comunidades
-              </Link>
-            </div>
+            <Link href="/comparativos" className="text-gray-900 hover:text-primary block px-3 py-2 rounded-md text-base font-medium">
+              Comparativos
+            </Link>
+
             <div className="space-y-1">
               <div className="text-gray-900 px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

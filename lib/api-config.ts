@@ -113,6 +113,14 @@ export const API_ENDPOINTS = {
     edificioDetalle: '/catastro/edificio-detalle/',
     calles: '/catastro/calles/',
   },
+
+  // Todo Riesgo Construcción
+  todoRiesgo: {
+    proyectos: '/ramo-tr-construccion/proyectos/',
+    ofertas: '/ramo-tr-construccion/ofertas/',
+    coberturas: '/ramo-tr-construccion/coberturas/',
+    franquicias: '/ramo-tr-construccion/franquicias/',
+  },
   
   // Health check
   health: '/health/',
