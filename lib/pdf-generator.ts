@@ -2,6 +2,32 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { TodoRiesgoProyecto, OfertaTodoRiesgo } from '@/lib/types/todo-riesgo'
 
+// Colores corporativos JLA
+const COLORS = {
+  primary: [139, 0, 0] as [number, number, number], // Rojo oscuro (dark red)
+  secondary: [220, 20, 60] as [number, number, number], // Crimson
+  lightGray: [245, 245, 245] as [number, number, number], // Gris muy claro
+  mediumGray: [200, 200, 200] as [number, number, number], // Gris medio
+  darkGray: [80, 80, 80] as [number, number, number], // Gris oscuro
+  white: [255, 255, 255] as [number, number, number]
+}
+
+const FOOTER_TEXT = 'JLA ASOCIADOS Correduría de seguros, S.A. (www.jlaasociados.es) está inscrita en el Registro de la Dirección de Seguros y Fondos de Pensiones dependiente del Ministerio de Economía y Hacienda con la clave J-326. concertado Seguro de Responsabilidad Civil que abarca todo el territorio del Espacio Económico Europeo y Garantía Financiera conforme a la legislación vigente.'
+
+function addFooter(doc: jsPDF, pageNumber: number) {
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  
+  doc.setFontSize(7)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  
+  const footerLines = doc.splitTextToSize(FOOTER_TEXT, pageWidth - 28)
+  const footerY = pageHeight - 20
+  
+  doc.text(footerLines, 14, footerY)
+}
+
 export async function generateProyectoPDF(
   proyecto: TodoRiesgoProyecto,
   ofertas: OfertaTodoRiesgo[]
@@ -10,12 +36,12 @@ export async function generateProyectoPDF(
   
   // PORTADA
   doc.setFontSize(24)
-  doc.setTextColor(30, 58, 138) // blue-900
+  doc.setTextColor(...COLORS.primary)
   doc.text('PROYECTO DE SEGURO', doc.internal.pageSize.getWidth() / 2, 80, { align: 'center' })
   doc.text('TODO RIESGO CONSTRUCCIÓN', doc.internal.pageSize.getWidth() / 2, 100, { align: 'center' })
   
   doc.setFontSize(16)
-  doc.setTextColor(55, 65, 81) // gray-700
+  doc.setTextColor(...COLORS.darkGray)
   doc.setFont('helvetica', 'bold')
   doc.text(proyecto.tomador, doc.internal.pageSize.getWidth() / 2, 140, { align: 'center' })
   
@@ -32,7 +58,7 @@ export async function generateProyectoPDF(
     
     // Título de la oferta
     doc.setFontSize(14)
-    doc.setTextColor(30, 58, 138)
+    doc.setTextColor(...COLORS.primary)
     doc.setFont('helvetica', 'bold')
     doc.text(
       `OFERTA ${index + 1} - ${oferta.compania_info?.rsocial || 'N/A'}`,
@@ -51,13 +77,13 @@ export async function generateProyectoPDF(
         proyecto.tomador
       ]],
       headStyles: {
-        fillColor: [30, 58, 138],
-        textColor: 255,
+        fillColor: COLORS.primary,
+        textColor: COLORS.white,
         fontStyle: 'bold',
         halign: 'center'
       },
       bodyStyles: {
-        fillColor: [245, 245, 220],
+        fillColor: COLORS.lightGray,
         halign: 'center'
       },
       theme: 'grid'
@@ -73,13 +99,13 @@ export async function generateProyectoPDF(
         `${proyecto.duracion} meses`
       ]],
       headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: 255,
+        fillColor: COLORS.secondary,
+        textColor: COLORS.white,
         fontStyle: 'bold',
         halign: 'center'
       },
       bodyStyles: {
-        fillColor: [173, 216, 230],
+        fillColor: COLORS.mediumGray,
         halign: 'center'
       },
       theme: 'grid'
@@ -88,7 +114,7 @@ export async function generateProyectoPDF(
     // COBERTURAS
     const currentY = (doc as any).lastAutoTable.finalY + 15
     doc.setFontSize(12)
-    doc.setTextColor(30, 58, 138)
+    doc.setTextColor(...COLORS.primary)
     doc.setFont('helvetica', 'bold')
     doc.text('COBERTURAS', 14, currentY)
     
@@ -103,7 +129,7 @@ export async function generateProyectoPDF(
     // FRANQUICIAS
     const franquiciasY = currentY + 7 + (coberturasLines.length * 5) + 10
     doc.setFontSize(12)
-    doc.setTextColor(30, 58, 138)
+    doc.setTextColor(...COLORS.primary)
     doc.setFont('helvetica', 'bold')
     doc.text('FRANQUICIAS', 14, franquiciasY)
     
@@ -125,18 +151,21 @@ export async function generateProyectoPDF(
         `${oferta.prima_total} €`
       ]],
       headStyles: {
-        fillColor: [5, 150, 105],
-        textColor: 255,
+        fillColor: COLORS.darkGray,
+        textColor: COLORS.white,
         fontStyle: 'bold',
         halign: 'center'
       },
       bodyStyles: {
-        fillColor: [144, 238, 144],
+        fillColor: COLORS.lightGray,
         halign: 'center',
         fontStyle: 'bold'
       },
       theme: 'grid'
     })
+    
+    // Añadir footer con texto legal
+    addFooter(doc, index + 2) // +2 porque la portada es página 1
   })
   
   // Descargar PDF
