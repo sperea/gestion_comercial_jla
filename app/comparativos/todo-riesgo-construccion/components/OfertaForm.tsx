@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { useToast } from '@/components/ui/Toast'
+import CurrencyInput from 'react-currency-input-field'
 
 interface OfertaFormProps {
   proyectoId: number
@@ -240,29 +241,47 @@ export default function OfertaForm({ proyectoId, oferta, isEditing = false }: Of
             required
           />
 
-          <Input
-            label="Prima Neta (€)"
-            name="prima_neta"
-             // @ts-ignore
-            type="number"
-            step="0.01"
-            value={formData.prima_neta}
-            onChange={handleChange}
-            placeholder="0.00"
-            required
-          />
+          <div className="space-y-1">
+            <label htmlFor="prima_neta" className="block text-sm font-medium text-gray-700">
+              Prima Neta (€) *
+            </label>
+            <CurrencyInput
+              id="prima_neta"
+              name="prima_neta"
+              placeholder="0,00 €"
+              decimalsLimit={2}
+              decimalScale={2}
+              decimalSeparator=","
+              groupSeparator="."
+              suffix=" €"
+              onValueChange={(value: string | undefined) => {
+                setFormData(prev => ({ ...prev, prima_neta: value || '' }))
+              }}
+              value={formData.prima_neta}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors duration-200"
+            />
+          </div>
 
-          <Input
-            label="Prima Total (€)"
-            name="prima_total"
-             // @ts-ignore
-            type="number"
-            step="0.01"
-            value={formData.prima_total}
-            onChange={handleChange}
-            placeholder="0.00"
-            required
-          />
+          <div className="space-y-1">
+            <label htmlFor="prima_total" className="block text-sm font-medium text-gray-700">
+              Prima Total (€) *
+            </label>
+            <CurrencyInput
+              id="prima_total"
+              name="prima_total"
+              placeholder="0,00 €"
+              decimalsLimit={2}
+              decimalScale={2}
+              decimalSeparator=","
+              groupSeparator="."
+              suffix=" €"
+              onValueChange={(value: string | undefined) => {
+                setFormData(prev => ({ ...prev, prima_total: value || '' }))
+              }}
+              value={formData.prima_total}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors duration-200"
+            />
+          </div>
           
           <Input
             label="Forma de Pago"
