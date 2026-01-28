@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import OfertaForm from '../../../components/OfertaForm'
 import { TodoRiesgoAPI } from '@/lib/api-todo-riesgo'
-import { OfertaTodoRiesgo } from '@/lib/types/todo-riesgo'
+import { OfertaTodoRiesgo, TodoRiesgoProyecto } from '@/lib/types/todo-riesgo'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 export default function EditarOfertaPage() {
@@ -14,25 +14,30 @@ export default function EditarOfertaPage() {
   const ofertaId = Number(params.ofertaId)
   
   const [oferta, setOferta] = useState<OfertaTodoRiesgo | null>(null)
+  const [proyecto, setProyecto] = useState<TodoRiesgoProyecto | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchOferta = async () => {
+    const fetchData = async () => {
       try {
         const api = new TodoRiesgoAPI()
-        const data = await api.getOferta(ofertaId)
-        setOferta(data)
+        const [ofertaData, proyectoData] = await Promise.all([
+          api.getOferta(ofertaId),
+          api.getProyecto(projectId)
+        ])
+        setOferta(ofertaData)
+        setProyecto(proyectoData)
       } catch (error) {
-        console.error('Error fetching oferta:', error)
+        console.error('Error fetching data:', error)
       } finally {
         setLoading(false)
       }
     }
     
-    if (ofertaId) {
-      fetchOferta()
+    if (ofertaId && projectId) {
+      fetchData()
     }
-  }, [ofertaId])
+  }, [ofertaId, projectId])
 
   if (loading) {
     return (
@@ -57,9 +62,23 @@ export default function EditarOfertaPage() {
           &larr; Volver al proyecto
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">Editar Oferta</h1>
-        <p className="text-gray-600">
-           #{oferta.id} - {oferta.compania_info?.rsocial || 'Compañía desconocida'}
-        </p>
+        <div className="mt-2 text-sm text-gray-600 space-y-1">
+            <p>
+                <span className="font-medium text-gray-900">Oferta #{oferta.id}</span>
+                {' - '}
+                <span>{oferta.compania_info?.rsocial || 'Compañía desconocida'}</span>
+            </p>
+            {proyecto && (
+                <div className="flex gap-4 pt-1">
+                    <p>
+                        <span className="font-medium text-gray-700">Tomador:</span> {proyecto.tomador}
+                    </p>
+                    <p>
+                        <span className="font-medium text-gray-700">Obra:</span> {proyecto.obra || 'N/A'}
+                    </p>
+                </div>
+            )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border p-6">

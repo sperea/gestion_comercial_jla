@@ -182,6 +182,49 @@ export class TodoRiesgoAPI {
     return data
   }
 
+  async createCobertura(data: Partial<Cobertura>): Promise<Cobertura> {
+    const url = buildUrl(API_ENDPOINTS.todoRiesgo.coberturas)
+    
+    const response = await fetchWithCredentials(url, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    
+    if (!response.ok) {
+        await handleApiError(response, 'creating cobertura')
+    }
+    return response.json()
+  }
+
+  async updateCobertura(id: number, data: Partial<Cobertura>): Promise<Cobertura> {
+    const url = buildUrl(`${API_ENDPOINTS.todoRiesgo.coberturas}${id}/`)
+    
+    const response = await fetchWithCredentials(url, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data)
+    })
+    
+    if (!response.ok) {
+        await handleApiError(response, 'updating cobertura')
+    }
+    return response.json()
+  }
+
+  async deleteCobertura(id: number): Promise<void> {
+    const url = buildUrl(`${API_ENDPOINTS.todoRiesgo.coberturas}${id}/`)
+    
+    const response = await fetchWithCredentials(url, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    })
+    
+    if (!response.ok) {
+        await handleApiError(response, 'deleting cobertura')
+    }
+  }
+
   // --- Ofertas ---
 
   async getOfertas(proyectoId: number): Promise<PaginatedResponse<OfertaTodoRiesgo>> {
@@ -236,7 +279,9 @@ export class TodoRiesgoAPI {
       body: isFormData ? data : JSON.stringify(data)
     })
     
-    if (!response.ok) throw new Error(`Error creating oferta: ${response.statusText}`)
+    if (!response.ok) {
+      await handleApiError(response, 'creating oferta')
+    }
     return response.json()
   }
 
@@ -250,7 +295,9 @@ export class TodoRiesgoAPI {
       body: isFormData ? data : JSON.stringify(data)
     })
     
-    if (!response.ok) throw new Error(`Error updating oferta ${id}: ${response.statusText}`)
+    if (!response.ok) {
+      await handleApiError(response, 'updating oferta')
+    }
     return response.json()
   }
 
@@ -262,7 +309,9 @@ export class TodoRiesgoAPI {
       headers: this.getHeaders()
     })
     
-    if (!response.ok) throw new Error(`Error deleting oferta ${id}: ${response.statusText}`)
+    if (!response.ok) {
+      await handleApiError(response, 'deleting oferta')
+    }
   }
 
   // --- Compañías ---

@@ -152,7 +152,7 @@ export default function OfertaForm({ proyectoId, oferta, isEditing = false }: Of
       // Usar JSON cuando NO hay archivo nuevo
       payload = {
         proyecto: proyectoId,
-        compania: parseInt(formData.compania),
+        compania: formData.compania ? parseInt(formData.compania) : null,
         capital: formData.capital,
         tasas: formData.tasas,
         prima_neta: formData.prima_neta,
@@ -276,8 +276,32 @@ export default function OfertaForm({ proyectoId, oferta, isEditing = false }: Of
         
         <div className="mt-4">
             <label htmlFor="archivo" className="block text-sm font-medium text-gray-700 mb-1">
-              Archivo Adjunto (Opcional)
+              Archivo Adjunto
             </label>
+            
+            {isEditing && oferta?.archivo && (
+               <div className="mb-3 p-3 bg-blue-50 border border-blue-100 rounded-md flex items-center justify-between">
+                 <div className="flex items-center space-x-2">
+                   <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                   </svg>
+                   <span className="text-sm text-blue-900 font-medium">Archivo actual disponible</span>
+                 </div>
+                 <a 
+                   href={oferta.archivo} 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   className="text-sm bg-white text-blue-600 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                 >
+                   Ver / Descargar
+                 </a>
+               </div>
+            )}
+
+            <p className="text-xs text-gray-500 mb-2">
+              {isEditing && oferta?.archivo ? 'Subir un nuevo archivo para reemplazar el actual:' : 'Subir archivo (PDF, Imágenes...)'}
+            </p>
+
             <input
               id="archivo"
               name="archivo"
@@ -287,13 +311,8 @@ export default function OfertaForm({ proyectoId, oferta, isEditing = false }: Of
                   setFormData(prev => ({ ...prev, archivo: e.target.files![0] }))
                 }
               }}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 cursor-pointer"
             />
-            {isEditing && oferta?.archivo && (
-               <p className="mt-1 text-xs text-gray-500">
-                 Archivo actual: <a href={oferta.archivo} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Ver archivo</a>
-               </p>
-            )}
         </div>
 
         <div className="mt-4">
@@ -314,7 +333,38 @@ export default function OfertaForm({ proyectoId, oferta, isEditing = false }: Of
 
       {/* Sección 2: Coberturas */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Coberturas Incluidas</h3>
+        <div className="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 className="text-lg font-medium text-gray-900">Coberturas Incluidas</h3>
+            <div className="flex gap-2">
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={async () => {
+                        const api = new TodoRiesgoAPI()
+                        try {
+                            const res = await api.getCoberturas()
+                            setCoberturas(res.results || [])
+                            addToast({ type: 'success', message: 'Coberturas actualizadas' })
+                        } catch (error) {
+                            console.error('Error reloading coberturas', error)
+                            addToast({ type: 'error', message: 'Error al recargar coberturas' })
+                        }
+                    }}
+                    title="Recargar listado de coberturas"
+                >
+                    🔄
+                </Button>
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.open('/comparativos/todo-riesgo-construccion/coberturas', '_blank')}
+                >
+                    ⚙️ Gestionar Coberturas
+                </Button>
+            </div>
+        </div>
         
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {coberturas.map((cob) => {

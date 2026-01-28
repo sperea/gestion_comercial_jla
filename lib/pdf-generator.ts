@@ -220,6 +220,24 @@ export async function generateProyectoPDF(
       theme: 'grid'
     })
     
+    // AVISO / NOTAS
+    if (oferta.aviso) {
+        const tableFinalY = (doc as any).lastAutoTable.finalY
+        const avisoY = tableFinalY + 10
+        
+        doc.setFontSize(10)
+        doc.setTextColor(...COLORS.primary)
+        doc.setFont('helvetica', 'bold')
+        doc.text('AVISO / NOTAS', 14, avisoY)
+        
+        doc.setFontSize(8)
+        doc.setTextColor(...COLORS.darkGray)
+        doc.setFont('helvetica', 'italic')
+        
+        const avisoLines = doc.splitTextToSize(oferta.aviso, 180)
+        doc.text(avisoLines, 14, avisoY + 6)
+    }
+
     // Añadir footer con texto legal
     addFooter(doc, index + 2) // +2 porque la portada es página 1
   })
