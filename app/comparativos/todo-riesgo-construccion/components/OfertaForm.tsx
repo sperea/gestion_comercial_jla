@@ -217,17 +217,26 @@ export default function OfertaForm({ proyectoId, oferta, isEditing = false }: Of
             </select>
           </div>
 
-          <Input
-            label="Capital Asegurado (€)"
-            name="capital"
-             // @ts-ignore
-            type="number"
-            step="0.01"
-            value={formData.capital}
-            onChange={handleChange}
-            required
-            placeholder="0.00"
-          />
+          <div className="space-y-1">
+            <label htmlFor="capital" className="block text-sm font-medium text-gray-700">
+              Capital Asegurado (€) *
+            </label>
+            <CurrencyInput
+              id="capital"
+              name="capital"
+              placeholder="0,00 €"
+              decimalsLimit={2}
+              decimalScale={2}
+              decimalSeparator=","
+              groupSeparator="."
+              suffix=" €"
+              onValueChange={(value: string | undefined) => {
+                setFormData(prev => ({ ...prev, capital: value || '' }))
+              }}
+              value={formData.capital}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors duration-200"
+            />
+          </div>
 
           <Input
             label="Tasas (%)"
