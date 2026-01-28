@@ -88,10 +88,14 @@ export async function generateProyectoPDF(
   doc.setFontSize(16)
   doc.setTextColor(...COLORS.darkGray)
   doc.setFont('helvetica', 'bold')
-  doc.text(proyecto.tomador, doc.internal.pageSize.getWidth() / 2, 150, { align: 'center' })
+  
+  const tomadorLines = doc.splitTextToSize(proyecto.tomador, 170)
+  doc.text(tomadorLines, doc.internal.pageSize.getWidth() / 2, 150, { align: 'center' })
   
   doc.setFont('helvetica', 'normal')
-  doc.text(proyecto.obra, doc.internal.pageSize.getWidth() / 2, 170, { align: 'center' })
+  const obraY = 150 + (tomadorLines.length * 8) + 10
+  const obraLines = doc.splitTextToSize(proyecto.obra, 170)
+  doc.text(obraLines, doc.internal.pageSize.getWidth() / 2, obraY, { align: 'center' })
   
   // PÁGINA POR CADA OFERTA
   ofertas.forEach((oferta, index) => {
@@ -183,7 +187,8 @@ export async function generateProyectoPDF(
     doc.text(coberturasLines, 14, currentY + 7)
     
     // FRANQUICIAS
-    const franquiciasY = currentY + 7 + (coberturasLines.length * 5) + 10
+    // Reduced spacing: changed + 10 to + 4
+    const franquiciasY = currentY + 7 + (coberturasLines.length * 5) + 4
     doc.setFontSize(12)
     doc.setTextColor(...COLORS.primary)
     doc.setFont('helvetica', 'bold')
