@@ -155,7 +155,7 @@ export async function generateProyectoPDF(
       head: [['Situación de la parcela', 'Capital asegurado', 'Duración de la obra']],
       body: [[
         proyecto.situacion,
-        `${Number(oferta.capital).toLocaleString()} €`,
+        `${Number(oferta.capital.replace(',', '.')).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €`,
         `${proyecto.duracion} meses`
       ]],
       headStyles: {
