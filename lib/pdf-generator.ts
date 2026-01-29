@@ -39,28 +39,29 @@ export async function generateProyectoPDF(
   let logoAspectRatio = 1
   
   try {
-    // Usar la URL completa para que funcione tanto en desarrollo como en producción
-    const logoUrl = typeof window !== 'undefined' 
-      ? `${window.location.origin}/logo.png`
-      : '/logo.png'
+    // Usar API route para obtener el logo de manera confiable en Vercel
+    const logoApiUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/api/logo`
+      : '/api/logo'
       
-    console.log('🖼️ Intentando cargar logo desde:', logoUrl)
+    console.log('🖼️ Cargando logo desde API:', logoApiUrl)
     
-    const response = await fetch(logoUrl, {
+    const response = await fetch(logoApiUrl, {
       method: 'GET',
-      cache: 'force-cache' // Intentar usar caché si está disponible
+      cache: 'force-cache'
     })
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
     
-    const blob = await response.blob()
-    console.log('✅ Logo cargado como blob:', blob.size, 'bytes')
+    const data = await response.json()
+    logoDataUrl = data.dataUrl
+    
+    console.log('✅ Logo cargado desde API, tamaño:', data.size, 'bytes')
     
     // Crear imagen para obtener dimensiones
     const img = new Image()
-    const imageUrl = URL.createObjectURL(blob)
     
     await new Promise((resolve, reject) => {
       img.onload = () => {
@@ -72,53 +73,13 @@ export async function generateProyectoPDF(
         console.error('❌ Error al cargar imagen:', err)
         reject(err)
       }
-      img.src = imageUrl
+      img.src = logoDataUrl!
     })
     
-    // Convertir a data URL
-    logoDataUrl = await new Promise<string>((resolve) => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        console.log('✅ Logo convertido a data URL')
-        resolve(reader.result as string)
-      }
-      reader.readAsDataURL(blob)
-    })
-    
-    URL.revokeObjectURL(imageUrl)
+    console.log('✅ Logo listo para usar en PDF')
   } catch (error) {
     console.error('❌ Error loading logo:', error)
-    // Intentar con ruta relativa como fallback
-    try {
-      const fallbackUrl = '/logo.png'
-      console.log('🔄 Intentando fallback con:', fallbackUrl)
-      const response = await fetch(fallbackUrl)
-      if (response.ok) {
-        const blob = await response.blob()
-        const img = new Image()
-        const imageUrl = URL.createObjectURL(blob)
-        
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            logoAspectRatio = img.height / img.width
-            resolve(null)
-          }
-          img.onerror = reject
-          img.src = imageUrl
-        })
-        
-        logoDataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.readAsDataURL(blob)
-        })
-        
-        URL.revokeObjectURL(imageUrl)
-        console.log('✅ Logo cargado con fallback')
-      }
-    } catch (fallbackError) {
-      console.error('❌ Fallback también falló:', fallbackError)
-    }
+    logoDataUrl = null
   }
   
   // PORTADA
