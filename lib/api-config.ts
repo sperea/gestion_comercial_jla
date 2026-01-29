@@ -122,6 +122,13 @@ export const API_ENDPOINTS = {
     franquicias: '/ramo-tr-construccion/franquicias/',
   },
   
+  // Garantía Decenal
+  garantiaDecenal: {
+    proyectos: '/ramo-garantia-decenal/proyectos/',
+    ofertas: '/ramo-garantia-decenal/ofertas/',
+    coberturas: '/ramo-garantia-decenal/coberturas/',
+  },
+  
   // Health check
   health: '/health/',
 } as const

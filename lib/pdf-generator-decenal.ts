@@ -1,0 +1,261 @@
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { DecenalProyecto, OfertaDecenal } from '@/lib/types/garantia-decenal'
+import { LOGO_BASE64 } from '@/lib/logo-data'
+import { sortCoberturas } from '@/lib/utils/sort-coberturas'
+
+// Colores corporativos JLA
+const COLORS = {
+  primary: [139, 0, 0] as [number, number, number], // Rojo oscuro (dark red)
+  secondary: [220, 20, 60] as [number, number, number], // Crimson
+  lightGray: [245, 245, 245] as [number, number, number], // Gris muy claro
+  mediumGray: [200, 200, 200] as [number, number, number], // Gris medio
+  darkGray: [80, 80, 80] as [number, number, number], // Gris oscuro
+  white: [255, 255, 255] as [number, number, number]
+}
+
+const FOOTER_TEXT = 'JLA ASOCIADOS Correduría de seguros, S.A. (www.jlaasociados.es) está inscrita en el Registro de la Dirección de Seguros y Fondos de Pensiones dependiente del Ministerio de Economía y Hacienda con la clave J-326. concertado Seguro de Responsabilidad Civil que abarca todo el territorio del Espacio Económico Europeo y Garantía Financiera conforme a la legislación vigente.'
+
+function addFooter(doc: jsPDF, pageNumber: number) {
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  
+  doc.setFontSize(7)
+  doc.setTextColor(100, 100, 100)
+  doc.setFont('helvetica', 'normal')
+  
+  const footerLines = doc.splitTextToSize(FOOTER_TEXT, pageWidth - 28)
+  const footerY = pageHeight - 20
+  
+  doc.text(footerLines, 14, footerY)
+}
+
+export async function generateProyectoDecenalPDF(
+  proyecto: DecenalProyecto,
+  ofertas: OfertaDecenal[]
+) {
+  const doc = new jsPDF()
+  
+  // Usar logo embebido directamente
+  let logoDataUrl: string | null = LOGO_BASE64
+  let logoAspectRatio = 1
+  
+  try {
+    // Obtener dimensiones del logo
+    const img = new Image()
+    
+    await new Promise((resolve, reject) => {
+      img.onload = () => {
+        logoAspectRatio = img.height / img.width
+        console.log('✅ Logo cargado desde constante embebida')
+        console.log('📐 Dimensiones del logo:', img.width, 'x', img.height, 'Ratio:', logoAspectRatio)
+        resolve(null)
+      }
+      img.onerror = (err) => {
+        console.error('❌ Error al cargar imagen embebida:', err)
+        reject(err)
+      }
+      img.src = LOGO_BASE64
+    })
+  } catch (error) {
+    console.error('❌ Error loading embedded logo:', error)
+    logoDataUrl = null
+  }
+  
+  // PORTADA
+  // Logo en la parte superior (más grande)
+  if (logoDataUrl) {
+    try {
+      const logoWidth = 80
+      const logoHeight = logoWidth * logoAspectRatio
+      
+      doc.addImage(logoDataUrl, 'PNG', (doc.internal.pageSize.getWidth() - logoWidth) / 2, 25, logoWidth, logoHeight)
+    } catch (error) {
+      console.error('Error adding logo to PDF:', error)
+    }
+  }
+  
+  doc.setFontSize(24)
+  doc.setTextColor(...COLORS.primary)
+  doc.text('PROYECTO DE SEGURO', doc.internal.pageSize.getWidth() / 2, 90, { align: 'center' })
+  doc.text('GARANTÍA DECENAL', doc.internal.pageSize.getWidth() / 2, 110, { align: 'center' })
+  
+  doc.setFontSize(16)
+  doc.setTextColor(...COLORS.darkGray)
+  doc.setFont('helvetica', 'bold')
+  
+  const tomadorLines = doc.splitTextToSize(proyecto.tomador, 170)
+  doc.text(tomadorLines, doc.internal.pageSize.getWidth() / 2, 150, { align: 'center' })
+  
+  doc.setFont('helvetica', 'normal')
+  const obraY = 150 + (tomadorLines.length * 8) + 10
+  const obraLines = doc.splitTextToSize(proyecto.obra, 170)
+  doc.text(obraLines, doc.internal.pageSize.getWidth() / 2, obraY, { align: 'center' })
+  
+  // PÁGINA POR CADA OFERTA
+  ofertas.forEach((oferta, index) => {
+    doc.addPage()
+    
+    // Título de la oferta
+    doc.setFontSize(14)
+    doc.setTextColor(...COLORS.primary)
+    doc.setFont('helvetica', 'bold')
+    const titleY = 20
+    doc.text(
+      `OFERTA ${index + 1} - ${oferta.compania_info?.rsocial || 'N/A'}`,
+      14,
+      titleY
+    )
+    
+    // Logo alineado con el título (misma altura)
+    if (logoDataUrl) {
+      try {
+        const logoWidth = 45
+        const logoHeight = logoWidth * logoAspectRatio
+        // Centrar verticalmente con el texto del título
+        const logoY = titleY - (logoHeight / 2) - 2
+        
+        doc.addImage(logoDataUrl, 'PNG', doc.internal.pageSize.getWidth() - logoWidth - 14, logoY, logoWidth, logoHeight)
+      } catch (error) {
+        console.error('Error adding logo to offer page:', error)
+      }
+    }
+    
+    // Tabla de información general (con más margen después del encabezado)
+    autoTable(doc, {
+      startY: 40,
+      head: [['FECHA', 'ASEGURADORA', 'OBRA', 'EMPRESA']],
+      body: [[
+        new Date(proyecto.fecha_creacion).toLocaleDateString('es-ES'),
+        oferta.compania_info?.rsocial || 'N/A',
+        proyecto.obra,
+        proyecto.tomador
+      ]],
+      headStyles: {
+        fillColor: COLORS.primary,
+        textColor: COLORS.white,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: {
+        fillColor: COLORS.lightGray,
+        halign: 'center'
+      },
+      theme: 'grid'
+    })
+    
+    // Tabla de detalles del proyecto
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 10,
+      head: [['Situación', 'Capital asegurado', 'Duración de la obra']],
+      body: [[
+        proyecto.situacion,
+        `${Number(oferta.capital.replace(',', '.')).toLocaleString('es-ES', { minimumFractionDigits: 2 })} €`,
+        proyecto.duracion
+      ]],
+      headStyles: {
+        fillColor: COLORS.primary,
+        textColor: COLORS.white,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: {
+        fillColor: COLORS.lightGray,
+        halign: 'center'
+      },
+      theme: 'grid'
+    })
+    
+    // COBERTURAS
+    const currentY = (doc as any).lastAutoTable.finalY + 15
+    doc.setFontSize(12)
+    doc.setTextColor(...COLORS.primary)
+    doc.setFont('helvetica', 'bold')
+    doc.text('COBERTURAS', 14, currentY)
+    
+    doc.setFontSize(10)
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    
+    const sortedCoberturas = oferta.coberturas_info ? sortCoberturas(oferta.coberturas_info) : []
+    const coberturas = sortedCoberturas.map(c => `• ${c.descripcion}`).join('\n') || 'No especificadas'
+    const coberturasLines = doc.splitTextToSize(coberturas, 180)
+    doc.text(coberturasLines, 14, currentY + 7)
+    
+    // FRANQUICIA (campo único de texto)
+    const franquiciaY = currentY + 7 + (coberturasLines.length * 5) + 10
+    doc.setFontSize(12)
+    doc.setTextColor(...COLORS.primary)
+    doc.setFont('helvetica', 'bold')
+    doc.text('FRANQUICIA', 14, franquiciaY)
+    
+    doc.setFontSize(10)
+    doc.setTextColor(0, 0, 0)
+    doc.setFont('helvetica', 'normal')
+    doc.text(oferta.franquicia || 'No especificada', 14, franquiciaY + 7)
+    
+    // Tabla de precios
+    autoTable(doc, {
+      startY: franquiciaY + 20,
+      head: [['Tasas aplicables', 'Prima Neta', 'Prima Total']],
+      body: [[
+        `${oferta.tasas}%`,
+        `${Number(oferta.prima_neta.replace(',', '.')).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
+        `${Number(oferta.prima_total.replace(',', '.')).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+      ]],
+      headStyles: {
+        fillColor: COLORS.primary,
+        textColor: COLORS.white,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: {
+        fillColor: COLORS.lightGray,
+        halign: 'center',
+        fontStyle: 'bold'
+      },
+      theme: 'grid'
+    })
+    
+    // FORMA DE PAGO
+    if (oferta.forma_pago) {
+      const tableFinalY = (doc as any).lastAutoTable.finalY
+      const formaPagoY = tableFinalY + 10
+      
+      doc.setFontSize(10)
+      doc.setTextColor(...COLORS.primary)
+      doc.setFont('helvetica', 'bold')
+      doc.text('FORMA DE PAGO', 14, formaPagoY)
+      
+      doc.setFontSize(9)
+      doc.setTextColor(...COLORS.darkGray)
+      doc.setFont('helvetica', 'normal')
+      
+      const formaPagoLines = doc.splitTextToSize(oferta.forma_pago, 180)
+      doc.text(formaPagoLines, 14, formaPagoY + 6)
+      
+      // AVISO / NOTAS
+      if (oferta.aviso) {
+        const avisoY = formaPagoY + 6 + (formaPagoLines.length * 4) + 8
+        
+        doc.setFontSize(10)
+        doc.setTextColor(...COLORS.primary)
+        doc.setFont('helvetica', 'bold')
+        doc.text('AVISO / NOTAS', 14, avisoY)
+        
+        doc.setFontSize(8)
+        doc.setTextColor(...COLORS.darkGray)
+        doc.setFont('helvetica', 'italic')
+        
+        const avisoLines = doc.splitTextToSize(oferta.aviso, 180)
+        doc.text(avisoLines, 14, avisoY + 6)
+      }
+    }
+
+    // Añadir footer con texto legal
+    addFooter(doc, index + 2) // +2 porque la portada es página 1
+  })
+  
+  // Descargar PDF
+  doc.save(`garantia_decenal_${proyecto.id}_${proyecto.obra.replace(/\s+/g, '_').substring(0, 30)}.pdf`)
+}
