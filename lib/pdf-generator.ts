@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { TodoRiesgoProyecto, OfertaTodoRiesgo } from '@/lib/types/todo-riesgo'
+import { LOGO_BASE64 } from '@/lib/logo-data'
 
 // Colores corporativos JLA
 const COLORS = {
@@ -34,51 +35,29 @@ export async function generateProyectoPDF(
 ) {
   const doc = new jsPDF()
   
-  // Cargar logo PNG y obtener dimensiones
-  let logoDataUrl: string | null = null
+  // Usar logo embebido directamente
+  let logoDataUrl: string | null = LOGO_BASE64
   let logoAspectRatio = 1
   
   try {
-    // Usar API route para obtener el logo de manera confiable en Vercel
-    const logoApiUrl = typeof window !== 'undefined' 
-      ? `${window.location.origin}/api/logo`
-      : '/api/logo'
-      
-    console.log('🖼️ Cargando logo desde API:', logoApiUrl)
-    
-    const response = await fetch(logoApiUrl, {
-      method: 'GET',
-      cache: 'force-cache'
-    })
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const data = await response.json()
-    logoDataUrl = data.dataUrl
-    
-    console.log('✅ Logo cargado desde API, tamaño:', data.size, 'bytes')
-    
-    // Crear imagen para obtener dimensiones
+    // Obtener dimensiones del logo
     const img = new Image()
     
     await new Promise((resolve, reject) => {
       img.onload = () => {
         logoAspectRatio = img.height / img.width
+        console.log('✅ Logo cargado desde constante embebida')
         console.log('📐 Dimensiones del logo:', img.width, 'x', img.height, 'Ratio:', logoAspectRatio)
         resolve(null)
       }
       img.onerror = (err) => {
-        console.error('❌ Error al cargar imagen:', err)
+        console.error('❌ Error al cargar imagen embebida:', err)
         reject(err)
       }
-      img.src = logoDataUrl!
+      img.src = LOGO_BASE64
     })
-    
-    console.log('✅ Logo listo para usar en PDF')
   } catch (error) {
-    console.error('❌ Error loading logo:', error)
+    console.error('❌ Error loading embedded logo:', error)
     logoDataUrl = null
   }
   
